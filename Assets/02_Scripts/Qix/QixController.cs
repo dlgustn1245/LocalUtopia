@@ -4,13 +4,17 @@ using UnityEngine;
 namespace Qix
 {
     // 플레이어 위치를 그리드 좌표로 추적하며 궤적 생성 -> 확보 판정을 담당하는 컨트롤러.
-    // 그리드는 카메라의 orthographic 뷰포트를 기준으로 자동 생성된다.
+    // 그리드는 지정한 플레이 영역(fieldSize / fieldCenter)을 기준으로 생성된다.
     public class QixController : MonoBehaviour
     {
-        public Camera targetCamera;
         public Player player;
         public float cellWorldSize;
         public QixGridRenderer gridRenderer;
+
+        // 플레이 영역(월드 단위). 화면 전체가 아니라 상단 HUD, 하단 조작 UI 자리를 뺀 크기를 지정한다.
+        // QixManager 를 선택하면 씬 뷰에 초록 사각형으로 표시되므로 보면서 조절하면 된다.
+        public Vector2 fieldSize;
+        public Vector2 fieldCenter;
 
         readonly List<Vector2Int> enemyCells = new();
         readonly QixCaptureService captureService = new();
@@ -20,17 +24,17 @@ namespace Qix
         Vector2Int lastCell;
         Vector2Int lastClaimedCell;
 
-        public QixGrid Grid => grid;
-
         void Awake()
         {
-            if (targetCamera == null)
-            {
-                targetCamera = Camera.main;
-            }
-
             BuildGrid();
             trail = new QixTrail();
+        }
+
+        // 씬 뷰에서 플레이 영역을 보면서 조절할 수 있게 그린다.
+        void OnDrawGizmosSelected()
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireCube(fieldCenter, fieldSize);
         }
 
         void Start()
@@ -40,7 +44,7 @@ namespace Qix
                 gridRenderer.Bind(grid);
             }
 
-            // 그리드가 카메라 화면 전체를 덮으므로, 가장자리 셀 중심을 경계로 주면 화면 밖으로 나가지 않는다.
+            // 가장자리 셀 중심을 경계로 주면 플레이어가 플레이 영역을 벗어나지 않는다.
             player.SetBounds(
                 grid.CellToWorld(Vector2Int.zero),
                 grid.CellToWorld(new Vector2Int(grid.Columns - 1, grid.Rows - 1)));
@@ -111,13 +115,12 @@ namespace Qix
 
         void BuildGrid()
         {
-            float height = targetCamera.orthographicSize * 2f;
-            float width = height * targetCamera.aspect;
-            var origin = (Vector2)targetCamera.transform.position - new Vector2(width, height) * 0.5f;
+            var origin = fieldCenter - fieldSize * 0.5f;
 
-            int columns = Mathf.Max(2, Mathf.RoundToInt(width / cellWorldSize));
-            int rows = Mathf.Max(2, Mathf.RoundToInt(height / cellWorldSize));
-            var cellSize = new Vector2(width / columns, height / rows);
+            // 칸 수를 반올림한 뒤 실제 칸 크기를 다시 계산해, 그리드가 플레이 영역에 정확히 들어맞게 한다.
+            int columns = Mathf.Max(2, Mathf.RoundToInt(fieldSize.x / cellWorldSize));
+            int rows = Mathf.Max(2, Mathf.RoundToInt(fieldSize.y / cellWorldSize));
+            var cellSize = new Vector2(fieldSize.x / columns, fieldSize.y / rows);
 
             grid = new QixGrid(columns, rows, origin, cellSize);
         }
@@ -167,10 +170,12 @@ namespace Qix
             trail.Cancel();
             RefreshRenderer();
 
+            #if UNITY_EDITOR
             if (capturedCells > 0)
             {
                 print($"확보 영역 {grid.ClaimedRatio * 100f:F1}% (이번 확보 {capturedCells}칸)");
             }
+            #endif
         }
 
         void HandlePlayerDeath()
