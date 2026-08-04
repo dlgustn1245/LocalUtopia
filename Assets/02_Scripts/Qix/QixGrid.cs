@@ -88,31 +88,5 @@ namespace Qix
             return Origin + new Vector2((cell.x + 0.5f) * CellSize.x, (cell.y + 0.5f) * CellSize.y);
         }
 
-        // from 에서 가장 가까운 해당 상태의 셀을 찾는다. 시작 위치 보정용.
-        public Vector2Int FindNearestCell(Vector2Int from, CellState state)
-        {
-            var nearest = from;
-            int nearestDistance = int.MaxValue;
-
-            for (int x = 0; x < Columns; x++)
-            {
-                for (int y = 0; y < Rows; y++)
-                {
-                    if (cells[x, y] != state)
-                    {
-                        continue;
-                    }
-
-                    int distance = (x - from.x) * (x - from.x) + (y - from.y) * (y - from.y);
-                    if (distance < nearestDistance)
-                    {
-                        nearestDistance = distance;
-                        nearest = new Vector2Int(x, y);
-                    }
-                }
-            }
-
-            return nearest;
-        }
     }
 }

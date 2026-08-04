@@ -49,7 +49,7 @@ namespace Qix
                 grid.CellToWorld(Vector2Int.zero),
                 grid.CellToWorld(new Vector2Int(grid.Columns - 1, grid.Rows - 1)));
 
-            SnapPlayerToClaimedCell();
+            MovePlayerToStartCell();
         }
 
         void Update()
@@ -63,15 +63,11 @@ namespace Qix
             StepTo(currentCell);
         }
 
-        // 플레이어는 확보된 영역에서 출발해야 한다.
-        // 미확보 칸에서 시작하면 시작하자마자 궤적이 그려진다.
-        void SnapPlayerToClaimedCell()
+        // 플레이어는 확보된 영역에서 출발해야 한다. 미확보 칸에서 시작하면 시작하자마자 궤적이 그려진다.
+        // 좌상단 모서리는 테두리라 항상 확보 상태이므로 별도 검사가 필요 없다.
+        void MovePlayerToStartCell()
         {
-            var startCell = grid.WorldToCell(player.transform.position);
-            if (grid.GetState(startCell) != CellState.Claimed)
-            {
-                startCell = grid.FindNearestCell(startCell, CellState.Claimed);
-            }
+            var startCell = new Vector2Int(0, grid.Rows - 1);
 
             lastClaimedCell = startCell;
             MovePlayerToCell(startCell);
