@@ -3,16 +3,22 @@ using UnityEngine;
 namespace Qix
 {
     // 그리드 상태를 텍스처로 시각화한다. 알고리즘 확인용 샘플 렌더러.
+    //
+    // 선(변)은 두께가 없어 칸 텍스처로 그대로 표현할 수 없으므로, 변마다 한쪽 칸을 칠해 나타낸다.
+    // 판정은 변으로 하고 표시만 칸 단위로 근사하는 것이라 게임 로직에는 영향이 없다.
+    // 확보 영역 선과 궤적이 같은 규칙으로 1칸씩 그려지므로 두께가 항상 같다.
     [RequireComponent(typeof(SpriteRenderer))]
     public class QixGridRenderer : MonoBehaviour
     {
-        public Color emptyColor = new(0f, 0f, 0f, 0f);
-        public Color claimedColor = new(0.2f, 0.6f, 1f, 0.6f);
-        public Color trailColor = Color.yellow;
+        public Color emptyColor;
+        public Color claimedColor;
+        public Color lineColor;
+        public Color trailColor;
 
         SpriteRenderer spriteRenderer;
         Texture2D texture;
         QixGrid grid;
+        QixTrail trail;
 
         // RGBA32 텍스처와 형식이 같아 SetPixels32 가 변환 없이 복사한다.
         // Color(float x4, 16바이트) 대신 쓰면 버퍼 크기도 1/4 이다.
@@ -40,11 +46,12 @@ namespace Qix
             ReleaseTexture();
         }
 
-        public void Bind(QixGrid targetGrid)
+        public void Bind(QixGrid targetGrid, QixTrail targetTrail)
         {
             ReleaseTexture();
 
             grid = targetGrid;
+            trail = targetTrail;
             texture = new Texture2D(grid.Columns, grid.Rows, TextureFormat.RGBA32, false)
             {
                 filterMode = FilterMode.Point,
@@ -79,26 +86,106 @@ namespace Qix
                 return;
             }
 
+            FillCells();
+            PaintBoundaryLines();
+
+            // 그리는 중인 궤적이 가장 잘 보여야 하므로 마지막에 덮어쓴다.
+            PaintTrail();
+
+            texture.SetPixels32(pixelBuffer);
+            texture.Apply(false);
+        }
+
+        void FillCells()
+        {
             Color32 empty = emptyColor;
             Color32 claimed = claimedColor;
-            Color32 trail = trailColor;
 
             for (int y = 0; y < grid.Rows; y++)
             {
                 for (int x = 0; x < grid.Columns; x++)
                 {
-                    var cell = new Vector2Int(x, y);
-                    pixelBuffer[y * grid.Columns + x] = grid.GetState(cell) switch
+                    pixelBuffer[y * grid.Columns + x] =
+                        grid.GetState(new Vector2Int(x, y)) == CellState.Claimed ? claimed : empty;
+                }
+            }
+        }
+
+        void PaintBoundaryLines()
+        {
+            Color32 line = lineColor;
+
+            for (int x = 0; x < grid.Columns; x++)
+            {
+                for (int y = 0; y <= grid.Rows; y++)
+                {
+                    if (grid.GetHorizontalEdge(x, y) == EdgeState.Boundary)
                     {
-                        CellState.Claimed => claimed,
-                        CellState.Trail => trail,
-                        _ => empty
-                    };
+                        PaintHorizontalEdge(x, y, line);
+                    }
                 }
             }
 
-            texture.SetPixels32(pixelBuffer);
-            texture.Apply(false);
+            for (int x = 0; x <= grid.Columns; x++)
+            {
+                for (int y = 0; y < grid.Rows; y++)
+                {
+                    if (grid.GetVerticalEdge(x, y) == EdgeState.Boundary)
+                    {
+                        PaintVerticalEdge(x, y, line);
+                    }
+                }
+            }
+        }
+
+        // 궤적은 꼭짓점 목록을 그대로 쓴다. 전체 격자를 훑는 것보다 훨씬 싸다.
+        void PaintTrail()
+        {
+            if (trail == null)
+            {
+                return;
+            }
+
+            Color32 color = trailColor;
+            var points = trail.Points;
+
+            for (int i = 1; i < points.Count; i++)
+            {
+                var from = points[i - 1];
+                var to = points[i];
+
+                if (from.y == to.y)
+                {
+                    PaintHorizontalEdge(Mathf.Min(from.x, to.x), from.y, color);
+                }
+                else
+                {
+                    PaintVerticalEdge(from.x, Mathf.Min(from.y, to.y), color);
+                }
+            }
+        }
+
+        // 선은 칸과 칸 사이에 놓이므로 한쪽 칸만 칠해 두께를 1칸으로 맞춘다.
+        // 위/오른쪽 칸을 기본으로 삼고 격자 밖이면 반대쪽으로 넘긴다.
+        // 확보 영역 선과 궤적이 같은 규칙을 쓰므로 궤적이 선으로 승격돼도 위치가 튀지 않는다.
+        void PaintHorizontalEdge(int x, int y, Color32 color)
+        {
+            PaintCell(x, y < grid.Rows ? y : y - 1, color);
+        }
+
+        void PaintVerticalEdge(int x, int y, Color32 color)
+        {
+            PaintCell(x < grid.Columns ? x : x - 1, y, color);
+        }
+
+        void PaintCell(int x, int y, Color32 color)
+        {
+            if (x < 0 || x >= grid.Columns || y < 0 || y >= grid.Rows)
+            {
+                return;
+            }
+
+            pixelBuffer[y * grid.Columns + x] = color;
         }
 
         // 런타임 생성 Texture2D / Sprite 는 GC 로 네이티브 메모리가 회수되지 않아 직접 파괴한다.
@@ -117,6 +204,7 @@ namespace Qix
             }
 
             pixelBuffer = null;
+            trail = null;
             isDirty = false;
         }
     }

@@ -4,9 +4,13 @@ using UnityEngine;
 
 namespace Qix
 {
-    // Qix 핵심 알고리즘: 궤적을 확보 영역에 편입시키고 남은 미확보(Empty) 영역을 flood fill 로 나눈 뒤,
+    // Qix 핵심 알고리즘: 미확보(Empty) 영역을 선(EdgeState.Boundary)을 벽 삼아 flood fill 로 나눈 뒤,
     // 적이 있는 영역은 남기고 나머지를 확보(Claimed) 처리한다.
     // 적이 하나도 없을 때는(테스트/초기 상태) 가장 넓은 영역을 플레이 필드로 남기고 나머지만 확보한다.
+    //
+    // 벽 판정을 칸이 아니라 변으로 하는 것이 핵심이다. 궤적은 칸을 차지하지 않고 칸 사이를 지나므로,
+    // 칸만 봐서는 새로 그린 선이 영역을 갈랐다는 사실을 알 수 없다.
+    // 호출 전에 궤적을 Boundary 로 승격시켜 두어야 한다.
     //
     // 확보 판정은 플레이 내내 반복되므로 호출마다 영역별 List 를 만들지 않는다.
     // 칸마다 영역 번호만 기록하고 크기는 따로 세어, 작업용 버퍼를 재사용한다.
@@ -28,14 +32,8 @@ namespace Qix
         int[,] regionIds;
 
         // 새로 확보된 칸 수를 반환한다.
-        public int Capture(QixGrid grid, IReadOnlyList<Vector2Int> trailCells, IReadOnlyList<Vector2Int> enemyCells)
+        public int Capture(QixGrid grid, IReadOnlyList<Vector2Int> enemyCells)
         {
-            // IReadOnlyList 를 foreach 로 돌면 열거자가 박싱되어 호출마다 힙 할당이 생긴다. 인덱스로 접근할 것.
-            for (int i = 0; i < trailCells.Count; i++)
-            {
-                grid.SetState(trailCells[i], CellState.Claimed);
-            }
-
             int regionCount = AssignRegionIds(grid);
             if (regionCount <= 1)
             {
@@ -108,6 +106,12 @@ namespace Qix
                     }
 
                     if (grid.GetState(next) != CellState.Empty)
+                    {
+                        continue;
+                    }
+
+                    // 두 칸 사이에 선이 놓였으면 넘어갈 수 없다. 이 판정이 영역을 가른다.
+                    if (grid.IsBoundaryBetweenCells(current, next))
                     {
                         continue;
                     }

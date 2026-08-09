@@ -1,10 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Qix
 {
-    // 플레이어 위치를 그리드 좌표로 추적하며 궤적 생성 -> 확보 판정을 담당하는 컨트롤러.
+    // 플레이어를 꼭짓점 격자 위에서 선을 따라 이동시키고, 궤적이 완성되면 영역 확보를 처리한다.
     // 그리드는 지정한 플레이 영역(fieldSize / fieldCenter)을 기준으로 생성된다.
+    //
+    // 이동은 꼭짓점 단위로 끊어서 처리한다. 프레임마다 위치를 보고 역산하면 빠르게 움직일 때
+    // 지나친 변을 놓쳐 궤적에 구멍이 생기기 때문이다.
     public class QixController : MonoBehaviour
     {
         public Player player;
@@ -16,18 +20,40 @@ namespace Qix
         public Vector2 fieldSize;
         public Vector2 fieldCenter;
 
+        public Slider ratioSlider;
+
         readonly List<Vector2Int> enemyCells = new();
         readonly QixCaptureService captureService = new();
 
         QixGrid grid;
         QixTrail trail;
-        Vector2Int lastCell;
-        Vector2Int lastClaimedCell;
+
+        Vector2Int currentVertex;
+        Vector2Int targetVertex;
+        bool isMoving;
 
         void Awake()
         {
             BuildGrid();
             trail = new QixTrail();
+        }
+
+        void Start()
+        {
+            if (gridRenderer != null)
+            {
+                gridRenderer.Bind(grid, trail);
+            }
+
+            if (ratioSlider != null)
+            {
+                ratioSlider.value = 0f;
+            }
+
+            // 좌상단 모서리에서 시작한다. 아레나 테두리라 항상 이동 가능한 선 위다.
+            currentVertex = new Vector2Int(0, grid.Rows);
+            targetVertex = currentVertex;
+            player.MoveTo(grid.VertexToWorld(currentVertex));
         }
 
         // 씬 뷰에서 플레이 영역을 보면서 조절할 수 있게 그린다.
@@ -37,67 +63,20 @@ namespace Qix
             Gizmos.DrawWireCube(fieldCenter, fieldSize);
         }
 
-        void Start()
-        {
-            if (gridRenderer != null)
-            {
-                gridRenderer.Bind(grid);
-            }
-
-            // 가장자리 셀 중심을 경계로 주면 플레이어가 플레이 영역을 벗어나지 않는다.
-            player.SetBounds(
-                grid.CellToWorld(Vector2Int.zero),
-                grid.CellToWorld(new Vector2Int(grid.Columns - 1, grid.Rows - 1)));
-
-            MovePlayerToStartCell();
-        }
-
         void Update()
         {
-            var currentCell = grid.WorldToCell(player.transform.position);
-            if (currentCell == lastCell)
+            if (isMoving)
             {
-                return;
-            }
-
-            StepTo(currentCell);
-        }
-
-        // 플레이어는 확보된 영역에서 출발해야 한다. 미확보 칸에서 시작하면 시작하자마자 궤적이 그려진다.
-        // 좌상단 모서리는 테두리라 항상 확보 상태이므로 별도 검사가 필요 없다.
-        void MovePlayerToStartCell()
-        {
-            var startCell = new Vector2Int(0, grid.Rows - 1);
-
-            lastClaimedCell = startCell;
-            MovePlayerToCell(startCell);
-        }
-
-        void MovePlayerToCell(Vector2Int cell)
-        {
-            player.MoveTo(grid.CellToWorld(cell));
-            lastCell = cell;
-        }
-
-        // 프레임 사이에 두 칸 이상 이동하면 궤적에 구멍이 생겨 영역 분할에 실패한다.
-        // 지나친 칸을 빠짐없이 순서대로 방문시킨다.
-        void StepTo(Vector2Int target)
-        {
-            while (lastCell != target)
-            {
-                var delta = target - lastCell;
-                var step = Mathf.Abs(delta.x) >= Mathf.Abs(delta.y)
-                    ? new Vector2Int((int)Mathf.Sign(delta.x), 0)
-                    : new Vector2Int(0, (int)Mathf.Sign(delta.y));
-
-                lastCell += step;
-
-                // 사망으로 플레이어가 되돌려졌다면 target 은 이미 무효한 목적지다.
-                if (!HandleCellEnter(lastCell))
+                if (!player.MoveTowards(grid.VertexToWorld(targetVertex)))
                 {
                     return;
                 }
+
+                isMoving = false;
+                ArriveAtVertex(targetVertex);
             }
+
+            TryStartNextMove();
         }
 
         public void SetEnemyCells(IReadOnlyList<Vector2Int> cells)
@@ -121,73 +100,118 @@ namespace Qix
             grid = new QixGrid(columns, rows, origin, cellSize);
         }
 
-        // 이어서 다음 칸을 진행해도 되면 true, 사망으로 플레이어가 되돌려졌으면 false 를 반환한다.
-        bool HandleCellEnter(Vector2Int cell)
+        void TryStartNextMove()
         {
-            var state = grid.GetState(cell);
-
-            if (state == CellState.Claimed)
+            var direction = player.InputDirection;
+            if (direction == Vector2Int.zero)
             {
-                // 사망 시 복귀 지점. 확보 영역을 벗어나기 직전 칸을 기억한다.
-                lastClaimedCell = cell;
-                CompleteTrailIfAny();
-                return true;
+                return;
             }
 
-            if (!trail.IsDrawing)
+            var next = currentVertex + direction;
+            if (!grid.IsVertexInBounds(next))
             {
-                trail.Begin(cell);
-                grid.SetState(cell, CellState.Trail);
-                RefreshRenderer();
-                return true;
+                return;
             }
 
-            if (!trail.TryAddPoint(cell))
+            if (trail.IsDrawing)
             {
-                HandlePlayerDeath();
-                return false;
+                // 그리는 중에는 미확보 영역만 가로지를 수 있다. 왔던 길로 되돌아가기도 여기서 막힌다.
+                if (!grid.CanDrawEdge(currentVertex, next))
+                {
+                    return;
+                }
+            }
+            else if (grid.GetEdge(currentVertex, next) == EdgeState.Boundary)
+            {
+                // 이미 놓인 선을 따라가는 이동. 그리기 버튼과 무관하다.
+            }
+            else if (grid.CanDrawEdge(currentVertex, next))
+            {
+                // 미확보 영역 쪽으로 향하면 곧바로 궤적이 시작된다.
+                trail.Begin(currentVertex);
+            }
+            else
+            {
+                return;
             }
 
-            grid.SetState(cell, CellState.Trail);
-            RefreshRenderer();
-            return true;
+            targetVertex = next;
+            isMoving = true;
         }
 
-        void CompleteTrailIfAny()
+        void ArriveAtVertex(Vector2Int vertex)
         {
+            var previous = currentVertex;
+            currentVertex = vertex;
+
             if (!trail.IsDrawing)
             {
                 return;
             }
 
-            // 칸 수와 무관하게 Capture 를 호출해야 한다. 건너뛰면 Trail 상태인 칸이 그대로 남아
-            // 영원히 미확보로 취급되며 이후 flood fill 을 막는다.
-            int capturedCells = captureService.Capture(grid, trail.Points, enemyCells);
-            trail.Cancel();
+            // 이미 지나온 꼭짓점이면 궤적이 자기 자신과 교차한 것이다.
+            if (!trail.TryAddPoint(vertex))
+            {
+                HandlePlayerDeath();
+                return;
+            }
+
+            grid.SetEdge(previous, vertex, EdgeState.Trail);
             RefreshRenderer();
 
-            #if UNITY_EDITOR
+            if (grid.IsBoundaryVertex(vertex))
+            {
+                CompleteTrail();
+            }
+        }
+
+        void CompleteTrail()
+        {
+            SetTrailEdges(EdgeState.Boundary);
+            trail.Cancel();
+
+            // 궤적을 선으로 승격한 뒤에 호출해야 flood fill 이 새 선을 벽으로 인식한다.
+            int capturedCells = captureService.Capture(grid, enemyCells);
+            RefreshRenderer();
+
             if (capturedCells > 0)
             {
-                print($"확보 영역 {grid.ClaimedRatio * 100f:F1}% (이번 확보 {capturedCells}칸)");
+                if (ratioSlider != null)
+                {
+                    ratioSlider.value = grid.ClaimedRatio;
+                }
+                if (grid.ClaimedRatio * 100f >= GameManager.Instance.clearRatio)
+                {
+                    print("mission clear");
+                }
             }
-            #endif
         }
 
         void HandlePlayerDeath()
         {
-            // IReadOnlyList 를 foreach 로 돌면 열거자가 박싱되어 힙 할당이 생긴다. 인덱스로 접근할 것.
-            var points = trail.Points;
-            for (int i = 0; i < points.Count; i++)
-            {
-                grid.SetState(points[i], CellState.Empty);
-            }
+            SetTrailEdges(EdgeState.None);
 
+            // 궤적을 시작한 지점으로 되돌린다. 그 자리는 반드시 선 위였다.
+            var respawnVertex = trail.Points.Count > 0 ? trail.Points[0] : currentVertex;
             trail.Cancel();
 
-            // 미확보 칸에 그대로 두면 다음 프레임에 곧바로 새 궤적이 시작된다.
-            MovePlayerToCell(lastClaimedCell);
+            currentVertex = respawnVertex;
+            targetVertex = respawnVertex;
+            isMoving = false;
+            player.MoveTo(grid.VertexToWorld(respawnVertex));
+
             RefreshRenderer();
+        }
+
+        void SetTrailEdges(EdgeState state)
+        {
+            // IReadOnlyList 를 foreach 로 돌면 열거자가 박싱되어 힙 할당이 생긴다. 인덱스로 접근할 것.
+            var points = trail.Points;
+            for (int i = 1; i < points.Count; i++)
+            {
+                grid.SetEdge(points[i - 1], points[i], state);
+            }
         }
 
         void RefreshRenderer()

@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace Qix
 {
-    // 플레이어가 미확보 영역을 가로지르는 동안의 궤적을 기록한다.
-    // 궤적이 자기 자신과 겹치면 사망 처리를 위해 false 를 반환한다.
+    // 플레이어가 미확보 영역을 가로지르는 동안 지나온 꼭짓점을 순서대로 기록한다.
+    // 이미 지나온 꼭짓점에 다시 닿으면(자기 교차) 사망 처리를 위해 false 를 반환한다.
     public class QixTrail
     {
         readonly List<Vector2Int> points = new();
@@ -13,29 +13,29 @@ namespace Qix
         public bool IsDrawing { get; private set; }
         public IReadOnlyList<Vector2Int> Points => points;
 
-        public void Begin(Vector2Int startCell)
+        public void Begin(Vector2Int startVertex)
         {
             points.Clear();
             pointSet.Clear();
-            points.Add(startCell);
-            pointSet.Add(startCell);
+            points.Add(startVertex);
+            pointSet.Add(startVertex);
             IsDrawing = true;
         }
 
-        public bool TryAddPoint(Vector2Int cell)
+        public bool TryAddPoint(Vector2Int vertex)
         {
-            if (!IsDrawing || cell == points[^1])
+            if (!IsDrawing || vertex == points[^1])
             {
                 return true;
             }
 
-            if (pointSet.Contains(cell))
+            if (pointSet.Contains(vertex))
             {
                 return false;
             }
 
-            points.Add(cell);
-            pointSet.Add(cell);
+            points.Add(vertex);
+            pointSet.Add(vertex);
             return true;
         }
 
