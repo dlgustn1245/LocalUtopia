@@ -11,6 +11,7 @@ LocalUtopia — Unity 게임 프로젝트. 현재 Qix(영역 확보) 게임을 �
 -   `Assets/01_Scenes`: 씬
 -   `Assets/02_Scripts/Player`: 플레이어 관련 스크립트
 -   `Assets/02_Scripts/Qix`: Qix 게임 로직(그리드, 궤적, 영역 확보 알고리즘 등)
+-   `Assets/02_Scripts/Util`: 유틸리티 로직(게임 매니저 등)
 -   `Assets/03_Resources`: 리소스(폰트, 컴포넌트 등)
 
 ------------------------------------------------------------------------

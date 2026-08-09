@@ -168,14 +168,23 @@ namespace Qix
         // 선은 칸과 칸 사이에 놓이므로 한쪽 칸만 칠해 두께를 1칸으로 맞춘다.
         // 위/오른쪽 칸을 기본으로 삼고 격자 밖이면 반대쪽으로 넘긴다.
         // 확보 영역 선과 궤적이 같은 규칙을 쓰므로 궤적이 선으로 승격돼도 위치가 튀지 않는다.
+        //
+        // 변이 끝나는 꼭짓점 쪽 칸까지 칠하는 이유:
+        // 가로 변은 위쪽 칸을, 세로 변은 오른쪽 칸을 잡기 때문에 "왼쪽 가로 + 아래 세로"로 꺾이는
+        // 모서리에서만 두 칸이 대각선으로 어긋난다. 끝 칸을 함께 칠하면 네 방향 모두 공통 칸이 생긴다.
+        // 같은 줄에 칠하므로 직선 구간의 두께는 그대로 1칸이다.
         void PaintHorizontalEdge(int x, int y, Color32 color)
         {
-            PaintCell(x, y < grid.Rows ? y : y - 1, color);
+            int row = y < grid.Rows ? y : y - 1;
+            PaintCell(x, row, color);
+            PaintCell(x + 1, row, color);
         }
 
         void PaintVerticalEdge(int x, int y, Color32 color)
         {
-            PaintCell(x < grid.Columns ? x : x - 1, y, color);
+            int column = x < grid.Columns ? x : x - 1;
+            PaintCell(column, y, color);
+            PaintCell(column, y + 1, color);
         }
 
         void PaintCell(int x, int y, Color32 color)

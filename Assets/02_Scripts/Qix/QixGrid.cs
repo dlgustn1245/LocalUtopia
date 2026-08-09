@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Qix
@@ -84,6 +85,21 @@ namespace Qix
         public void SetState(Vector2Int cell, CellState state)
         {
             cells[cell.x, cell.y] = state;
+        }
+
+        public void ClaimAllArea()
+        {
+            for (int i = 0; i < Columns; i++)
+            {
+                for (int j = 0; j < Rows; j++)
+                {
+                    cells[i, j] = CellState.Claimed;
+                }
+            }
+            Array.Clear(horizontalEdges, 0, horizontalEdges.Length);
+            Array.Clear(verticalEdges, 0, verticalEdges.Length);
+            
+            InitializeBorderEdges();
         }
 
         // 칸 (x,y) 는 Origin + (x,y)*CellSize 부터 Origin + (x+1,y+1)*CellSize 까지의 사각형을 차지한다.

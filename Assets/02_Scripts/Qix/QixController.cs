@@ -50,10 +50,24 @@ namespace Qix
                 ratioSlider.value = 0f;
             }
 
+            GameManager.Instance.Reset();
             // 좌상단 모서리에서 시작한다. 아레나 테두리라 항상 이동 가능한 선 위다.
-            currentVertex = new Vector2Int(0, grid.Rows);
-            targetVertex = currentVertex;
-            player.MoveTo(grid.VertexToWorld(currentVertex));
+            SetPlayerFirstVertex();
+        }
+
+        void SetPlayerFirstVertex()
+        {
+            MovePlayerToVertex(new Vector2Int(0, grid.Rows));
+        }
+
+        // 플레이어를 특정 꼭짓점으로 순간 이동시킨다.
+        // 이동 상태 세 가지를 한꺼번에 맞추는 유일한 경로로 두어, 한쪽만 갱신되는 일이 없게 한다.
+        void MovePlayerToVertex(Vector2Int vertex)
+        {
+            currentVertex = vertex;
+            targetVertex = vertex;
+            isMoving = false;
+            player.MoveTo(grid.VertexToWorld(vertex));
         }
 
         // 씬 뷰에서 플레이 영역을 보면서 조절할 수 있게 그린다.
@@ -103,6 +117,13 @@ namespace Qix
         void TryStartNextMove()
         {
             var direction = player.InputDirection;
+            
+            //플레이어가 죽은 경우
+            if (GameManager.Instance.isDead || GameManager.Instance.stageClear)
+            {
+                return;
+            }
+            
             if (direction == Vector2Int.zero)
             {
                 return;
@@ -183,8 +204,22 @@ namespace Qix
                 }
                 if (grid.ClaimedRatio * 100f >= GameManager.Instance.clearRatio)
                 {
-                    print("mission clear");
+                    print("Stage Clear");
+                    StageClear();
                 }
+            }
+        }
+
+        void StageClear()
+        {
+            SetPlayerFirstVertex();
+            grid.ClaimAllArea();
+            RefreshRenderer();
+
+            GameManager.Instance.stageClear = true;
+            if (ratioSlider != null)
+            {
+                ratioSlider.value = 1.0f;
             }
         }
 
@@ -192,16 +227,29 @@ namespace Qix
         {
             SetTrailEdges(EdgeState.None);
 
+            if (CheckPlayerDead())
+            {
+                print("Player Dead");
+            }
+            
             // 궤적을 시작한 지점으로 되돌린다. 그 자리는 반드시 선 위였다.
             var respawnVertex = trail.Points.Count > 0 ? trail.Points[0] : currentVertex;
             trail.Cancel();
 
-            currentVertex = respawnVertex;
-            targetVertex = respawnVertex;
-            isMoving = false;
-            player.MoveTo(grid.VertexToWorld(respawnVertex));
+            MovePlayerToVertex(respawnVertex);
 
             RefreshRenderer();
+        }
+
+        bool CheckPlayerDead()
+        {
+            if (--GameManager.Instance.deathCount <= 0)
+            {
+                GameManager.Instance.isDead = true;
+                return true;
+            }
+
+            return false;
         }
 
         void SetTrailEdges(EdgeState state)
