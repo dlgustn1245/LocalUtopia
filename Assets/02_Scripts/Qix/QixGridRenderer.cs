@@ -10,6 +10,8 @@ namespace Qix
     [RequireComponent(typeof(SpriteRenderer))]
     public class QixGridRenderer : MonoBehaviour
     {
+        public SpriteRenderer backgroundRenderer;
+        
         public Color emptyColor;
         public Color claimedColor;
         public Color lineColor;
@@ -65,9 +67,18 @@ namespace Qix
                 new Vector2(0.5f, 0.5f),
                 1f);
 
-            transform.localScale = new Vector3(grid.CellSize.x, grid.CellSize.y, 1f);
-            transform.position = grid.Origin + new Vector2(grid.Columns * grid.CellSize.x, grid.Rows * grid.CellSize.y) * 0.5f;
+            var fieldWorldSize = new Vector2(grid.Columns * grid.CellSize.x, grid.Rows * grid.CellSize.y);
 
+            transform.localScale = new Vector3(grid.CellSize.x, grid.CellSize.y, 1f);
+            transform.position = grid.Origin + fieldWorldSize * 0.5f;
+
+            if (backgroundRenderer != null)
+            {
+                var spriteSize = backgroundRenderer.sprite.bounds.size;
+                backgroundRenderer.transform.localScale = new Vector3(fieldWorldSize.x / spriteSize.x, fieldWorldSize.y / spriteSize.y, 1f);
+                backgroundRenderer.transform.position = backgroundRenderer.transform.position = grid.Origin + fieldWorldSize * 0.5f;
+            }
+            
             isDirty = false;
             Redraw();
         }

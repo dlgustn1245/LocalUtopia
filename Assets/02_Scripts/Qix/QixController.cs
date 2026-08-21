@@ -44,6 +44,7 @@ namespace Qix
 
         void Start()
         {
+            InitStage();
             if (gridRenderer != null)
             {
                 gridRenderer.Bind(grid, trail);
@@ -54,7 +55,6 @@ namespace Qix
                 ratioSlider.value = 0f;
             }
             
-            InitStage();
             // 좌상단 모서리에서 시작한다. 아레나 테두리라 항상 이동 가능한 선 위다.
             SetPlayerFirstVertex();
         }
@@ -62,6 +62,7 @@ namespace Qix
         void InitStage()
         {
             stage = stages[GameManager.Instance.currStage];
+            gridRenderer.backgroundRenderer.sprite = stage.hiddenImage;
         }
 
         void SetPlayerFirstVertex()
