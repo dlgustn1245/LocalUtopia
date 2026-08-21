@@ -31,6 +31,7 @@ namespace Qix
         Vector2Int currentVertex;
         Vector2Int targetVertex;
         bool isMoving;
+        bool canMove = true;
 
         void Awake()
         {
@@ -49,8 +50,6 @@ namespace Qix
             {
                 ratioSlider.value = 0f;
             }
-
-            GameManager.Instance.Reset();
             // 좌상단 모서리에서 시작한다. 아레나 테두리라 항상 이동 가능한 선 위다.
             SetPlayerFirstVertex();
         }
@@ -119,7 +118,7 @@ namespace Qix
             var direction = player.InputDirection;
             
             //플레이어가 죽은 경우
-            if (GameManager.Instance.isDead || GameManager.Instance.stageClear)
+            if (GameManager.Instance.isDead || !canMove)
             {
                 return;
             }
@@ -205,6 +204,7 @@ namespace Qix
                 if (grid.ClaimedRatio * 100f >= GameManager.Instance.clearRatio)
                 {
                     print("Stage Clear");
+                    canMove = false;
                     StageClear();
                 }
             }
@@ -216,7 +216,8 @@ namespace Qix
             grid.ClaimAllArea();
             RefreshRenderer();
 
-            GameManager.Instance.stageClear = true;
+            GameManager.Instance.StageClear();
+            
             if (ratioSlider != null)
             {
                 ratioSlider.value = 1.0f;
