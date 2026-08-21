@@ -7,6 +7,12 @@ using UnityEngine;
 // 이 스크립트는 거기까지 이동만 한다.
 public class Player : MonoBehaviour
 {
+    public Sprite safeSprite;
+    public Sprite drawSprite;
+    public Sprite hitSprite;
+
+    public SpriteRenderer spriteRenderer;
+    
     public float moveSpeed = 5f;
 
     public Vector2Int InputDirection { get; private set; }
@@ -14,6 +20,21 @@ public class Player : MonoBehaviour
     void Update()
     {
         ReadInput();
+    }
+
+    public void SetSafeSprite()
+    {
+        spriteRenderer.sprite = safeSprite;
+    }
+
+    public void SetDrawSprite()
+    {
+        spriteRenderer.sprite = drawSprite;
+    }
+
+    public void SetHitSprite()
+    {
+        spriteRenderer.sprite = hitSprite;
     }
 
     // 목표 좌표를 향해 한 프레임만큼 이동한다. 도달했으면 true.

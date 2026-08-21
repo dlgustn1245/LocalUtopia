@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class TitleScene : MonoBehaviour
@@ -7,9 +6,7 @@ public class TitleScene : MonoBehaviour
     public GameObject stageButtonsObject;
     public Button[] stageButtons;
     public GameObject[] clearMarks;
-    public string qixSceneName;
 
-    bool isLoading;
     bool isFirstTouch = true;
 
     void Start()
@@ -34,18 +31,10 @@ public class TitleScene : MonoBehaviour
             stageButtons[idx].onClick.AddListener(delegate
             {
                 GameManager.Instance.currStage = idx;
-                if (isLoading)
-                {
-                    return;
-                }
-                SceneManager.LoadSceneAsync(qixSceneName);
-                isLoading = true;
+                SceneLoader.Load(SceneNames.Loading);
             });
-            if (GameManager.Instance.IsCleared(i))
-            {
-                print($"Stage {i} is Cleared");
-                clearMarks[i].SetActive(true);
-            }
+
+            clearMarks[idx].SetActive(GameManager.Instance.IsCleared(idx));
         }
     }
     

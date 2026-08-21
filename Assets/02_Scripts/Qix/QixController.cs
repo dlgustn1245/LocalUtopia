@@ -11,6 +11,9 @@ namespace Qix
     // 지나친 변을 놓쳐 궤적에 구멍이 생기기 때문이다.
     public class QixController : MonoBehaviour
     {
+        public StageData[] stages;
+        StageData stage;
+        
         public Player player;
         public float cellWorldSize;
         public QixGridRenderer gridRenderer;
@@ -50,8 +53,15 @@ namespace Qix
             {
                 ratioSlider.value = 0f;
             }
+            
+            InitStage();
             // 좌상단 모서리에서 시작한다. 아레나 테두리라 항상 이동 가능한 선 위다.
             SetPlayerFirstVertex();
+        }
+
+        void InitStage()
+        {
+            stage = stages[GameManager.Instance.currStage];
         }
 
         void SetPlayerFirstVertex()
@@ -150,6 +160,7 @@ namespace Qix
             {
                 // 미확보 영역 쪽으로 향하면 곧바로 궤적이 시작된다.
                 trail.Begin(currentVertex);
+                player.SetDrawSprite();
             }
             else
             {
@@ -190,6 +201,7 @@ namespace Qix
         {
             SetTrailEdges(EdgeState.Boundary);
             trail.Cancel();
+            player.SetSafeSprite();
 
             // 궤적을 선으로 승격한 뒤에 호출해야 flood fill 이 새 선을 벽으로 인식한다.
             int capturedCells = captureService.Capture(grid, enemyCells);
@@ -201,7 +213,7 @@ namespace Qix
                 {
                     ratioSlider.value = grid.ClaimedRatio;
                 }
-                if (grid.ClaimedRatio * 100f >= GameManager.Instance.clearRatio)
+                if (grid.ClaimedRatio * 100f >= stage.clearRatio)
                 {
                     print("Stage Clear");
                     canMove = false;
@@ -236,6 +248,7 @@ namespace Qix
             // 궤적을 시작한 지점으로 되돌린다. 그 자리는 반드시 선 위였다.
             var respawnVertex = trail.Points.Count > 0 ? trail.Points[0] : currentVertex;
             trail.Cancel();
+            player.SetSafeSprite();
 
             MovePlayerToVertex(respawnVertex);
 

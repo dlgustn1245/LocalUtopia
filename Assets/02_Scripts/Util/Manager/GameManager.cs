@@ -2,7 +2,6 @@ using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
 {
-    public float clearRatio;
     public int deathCount;
     public bool isDead;
 
@@ -27,11 +26,12 @@ public class GameManager : Singleton<GameManager>
 
     public void Init(int stageCount)
     {
-        clearRatio = 80f;
         deathCount = 3;
         isDead = false;
         currStage = -1;
         totalStage = stageCount;
+
+        //DeleteData();
     }
 
     public void StageClear()
@@ -43,5 +43,14 @@ public class GameManager : Singleton<GameManager>
     public bool IsCleared(int stage)
     {
         return PlayerPrefs.GetInt($"Stage{stage}") == 1;
+    }
+
+    void DeleteData()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            PlayerPrefs.DeleteKey($"Stage{i}");
+        }
+        print("Key Deleted");
     }
 }

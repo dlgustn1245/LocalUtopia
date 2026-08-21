@@ -298,6 +298,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 305a82534c20f83448db547de83e77eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  safeSprite: {fileID: 21300000, guid: bf027347eaec19448ac14f0107ea182d, type: 3}
+  drawSprite: {fileID: 21300000, guid: 2ee473862961bde44a773d32acc37937, type: 3}
+  hitSprite: {fileID: 21300000, guid: 3e459c4934f1bdb41866042b0c3b4205, type: 3}
+  spriteRenderer: {fileID: 200003}
   moveSpeed: 5
 --- !u!1 &300001
 GameObject:
@@ -343,7 +347,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_BackGroundColor: {r: 0.007843138, g: 0.05882353, b: 0.3019608, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -480,6 +484,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e87aa39cf8614c598894e5779b8cf6c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  stages:
+  - {fileID: 11400000, guid: f2a28556072209d46adaf0376312e5bd, type: 2}
   player: {fileID: 200004}
   cellWorldSize: 0.05
   gridRenderer: {fileID: 500004}
