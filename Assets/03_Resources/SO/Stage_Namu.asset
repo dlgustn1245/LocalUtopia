@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fad04425f8a0da4495b33053b314d65, type: 3}
+  m_Name: Stage_Namu
+  m_EditorClassIdentifier: 
+  hiddenImage: {fileID: 21300000, guid: 00951a7799676bc47b6e36884a024054, type: 3}
+  enemy: {fileID: 0}
+  enemyAnims:
+  - {fileID: 2800000, guid: 6ba27d905d65c664b8417ccf5489da9b, type: 3}
+  - {fileID: 2800000, guid: d84cf4d2cb34a2b4da5287506b85c3b5, type: 3}
+  comment: "\uBE44\uC624\uB294 \uB0A0\uC528\uB97C \uD53C\uD574\\n\uC911\uC559\uC544\uD30C\uD2B8
+    \uC9C0\uB3C4\uB97C\\n\uC644\uC131\uD560 \uC218 \uC788\uB3C4\uB85D \uB3C4\uC640\uC8FC\uC138\uC694!"
+  enemyCount: 3
+  clearRatio: 77.5
+  deathCount: 1

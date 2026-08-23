@@ -61,6 +61,7 @@ namespace Qix
         void InitStage()
         {
             stage = GameManager.Instance.stages[GameManager.Instance.currStage];
+            GameManager.Instance.deathCount = stage.deathCount;
             gridRenderer.backgroundRenderer.sprite = stage.hiddenImage;
         }
 

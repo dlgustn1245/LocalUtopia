@@ -5,8 +5,9 @@ public class StageData : ScriptableObject
 {
     public Sprite hiddenImage;
     public GameObject enemy;
-    public Sprite[] enemyAnims;
+    public Texture[] enemyAnims;
     public string comment;
     public int enemyCount;
     public float clearRatio;
+    public int deathCount;
 }

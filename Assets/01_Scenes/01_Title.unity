@@ -150,6 +150,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   stages:
   - {fileID: 11400000, guid: f2a28556072209d46adaf0376312e5bd, type: 2}
+  - {fileID: 11400000, guid: 336c36b9e5102b441be2023d5959069f, type: 2}
+  - {fileID: 11400000, guid: cf6f78d0e9d75fe47852be63230afadb, type: 2}
+  - {fileID: 11400000, guid: 86fadaf970d237f4a97f8e1cca215823, type: 2}
+  - {fileID: 11400000, guid: ef31a6258d0049544a71764e0a9e23bf, type: 2}
   deathCount: 0
   isDead: 0
   currStage: 0
@@ -525,7 +529,7 @@ GameObject:
   - component: {fileID: 516029037}
   - component: {fileID: 516029036}
   m_Layer: 5
-  m_Name: Button04
+  m_Name: Button - Leeguheok
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -942,7 +946,7 @@ GameObject:
   - component: {fileID: 858600227}
   - component: {fileID: 858600226}
   m_Layer: 5
-  m_Name: Button05
+  m_Name: Button - Namu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1361,7 +1365,7 @@ GameObject:
   - component: {fileID: 1515188379}
   - component: {fileID: 1515188378}
   m_Layer: 5
-  m_Name: Button01
+  m_Name: Button - JaeJae
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1708,7 +1712,7 @@ GameObject:
   - component: {fileID: 1751436395}
   - component: {fileID: 1751436394}
   m_Layer: 5
-  m_Name: Button02
+  m_Name: Button - Dani
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1829,7 +1833,7 @@ GameObject:
   - component: {fileID: 1824772913}
   - component: {fileID: 1824772912}
   m_Layer: 5
-  m_Name: Button03
+  m_Name: Button - Sonqo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

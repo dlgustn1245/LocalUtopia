@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class LoadingScene : MonoBehaviour
 {
-    public Image enemyImage;
+    public RawImage enemyImage;
     public TextMeshProUGUI comment;
 
     readonly WaitForSeconds delay = new WaitForSeconds(0.5f);
@@ -13,6 +13,8 @@ public class LoadingScene : MonoBehaviour
     void Start()
     {
         StartCoroutine(PlayLoading());
+        enemyImage.SetNativeSize();
+        enemyImage.rectTransform.sizeDelta *= 3f;
     }
 
     IEnumerator PlayLoading()
@@ -20,11 +22,9 @@ public class LoadingScene : MonoBehaviour
         var stage = GameManager.Instance.stages[GameManager.Instance.currStage];
         comment.text = stage.comment;
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 6; i++)
         {
-            enemyImage.sprite = stage.enemyAnims[0];
-            yield return delay;
-            enemyImage.sprite = stage.enemyAnims[1];
+            enemyImage.texture = stage.enemyAnims[i % stage.enemyAnims.Length];
             yield return delay;
         }
 

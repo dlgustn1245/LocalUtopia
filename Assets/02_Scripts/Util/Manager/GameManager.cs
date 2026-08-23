@@ -28,7 +28,6 @@ public class GameManager : Singleton<GameManager>
 
     public void Init(int stageCount)
     {
-        deathCount = 3;
         isDead = false;
         currStage = -1;
         totalStage = stageCount;
