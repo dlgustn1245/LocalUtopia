@@ -11,7 +11,6 @@ namespace Qix
     // 지나친 변을 놓쳐 궤적에 구멍이 생기기 때문이다.
     public class QixController : MonoBehaviour
     {
-        public StageData[] stages;
         StageData stage;
         
         public Player player;
@@ -61,7 +60,7 @@ namespace Qix
 
         void InitStage()
         {
-            stage = stages[GameManager.Instance.currStage];
+            stage = GameManager.Instance.stages[GameManager.Instance.currStage];
             gridRenderer.backgroundRenderer.sprite = stage.hiddenImage;
         }
 
@@ -244,6 +243,7 @@ namespace Qix
             if (CheckPlayerDead())
             {
                 print("Player Dead");
+                SetPlayerFirstVertex();
             }
             
             // 궤적을 시작한 지점으로 되돌린다. 그 자리는 반드시 선 위였다.

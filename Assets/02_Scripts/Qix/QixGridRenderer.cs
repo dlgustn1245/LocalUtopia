@@ -76,8 +76,9 @@ namespace Qix
             {
                 var spriteSize = backgroundRenderer.sprite.bounds.size;
                 backgroundRenderer.transform.localScale = new Vector3(fieldWorldSize.x / spriteSize.x, fieldWorldSize.y / spriteSize.y, 1f);
-                backgroundRenderer.transform.position = backgroundRenderer.transform.position = grid.Origin + fieldWorldSize * 0.5f;
+                backgroundRenderer.transform.position = grid.Origin + fieldWorldSize * 0.5f;
             }
+            backgroundRenderer.sortingOrder = spriteRenderer.sortingOrder - 1;
             
             isDirty = false;
             Redraw();

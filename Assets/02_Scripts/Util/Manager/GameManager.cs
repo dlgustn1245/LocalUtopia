@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
 {
+    public StageData[] stages;
+    
     public int deathCount;
     public bool isDead;
 

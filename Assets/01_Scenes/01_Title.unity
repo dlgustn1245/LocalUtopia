@@ -148,7 +148,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcf5e23112acd0e428cae39c4d385d23, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  clearRatio: 0
+  stages:
+  - {fileID: 11400000, guid: f2a28556072209d46adaf0376312e5bd, type: 2}
   deathCount: 0
   isDead: 0
   currStage: 0
@@ -209,7 +210,6 @@ MonoBehaviour:
   - {fileID: 1535028780}
   - {fileID: 1567353442}
   - {fileID: 494314999}
-  qixSceneName: 03_Qix
 --- !u!4 &188717336
 Transform:
   m_ObjectHideFlags: 0
