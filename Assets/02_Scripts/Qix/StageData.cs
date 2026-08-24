@@ -4,7 +4,7 @@ using UnityEngine;
 public class StageData : ScriptableObject
 {
     public Sprite hiddenImage;
-    public GameObject enemy;
+    public GameObject[] enemy;
     public Texture[] enemyAnims;
     public string comment;
     public int enemyCount;

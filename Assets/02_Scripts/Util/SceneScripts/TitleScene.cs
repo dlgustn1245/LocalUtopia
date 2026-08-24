@@ -7,12 +7,16 @@ public class TitleScene : MonoBehaviour
     public Button[] stageButtons;
     public GameObject[] clearMarks;
 
-    bool isFirstTouch = true;
+    public Button popupButton, prevButton;
+    public GameObject titleText;
+
+    bool isTitleVisible = true;
 
     void Start()
     {
         GameManager.Instance.Init(stageButtons.Length);
         BindButtonEvent();
+        SetTitleVisible(true);
     }
 
     void Update()
@@ -28,7 +32,7 @@ public class TitleScene : MonoBehaviour
         for (int i = 0; i < stageButtons.Length; i++)
         {
             int idx = i;
-            stageButtons[idx].onClick.AddListener(delegate
+            stageButtons[idx].onClick.AddListener(() =>
             {
                 GameManager.Instance.currStage = idx;
                 SceneLoader.Load(SceneNames.Loading);
@@ -36,16 +40,31 @@ public class TitleScene : MonoBehaviour
 
             clearMarks[idx].SetActive(GameManager.Instance.IsCleared(idx));
         }
+        
+        popupButton.onClick.AddListener(() =>
+        {
+            stageButtonsObject.SetActive(true);
+            popupButton.gameObject.SetActive(false);
+        });
+        prevButton.onClick.AddListener(() => SetTitleVisible(true));
     }
-    
+
     void OnClickTitle()
     {
-        if (!isFirstTouch)
+        if (!isTitleVisible)
         {
             return;
         }
-        isFirstTouch = false;
-        
-        stageButtonsObject.SetActive(true);
+
+        SetTitleVisible(false);
+    }
+
+    void SetTitleVisible(bool visible)
+    {
+        isTitleVisible = visible;
+        titleText.SetActive(visible);
+        popupButton.gameObject.SetActive(!visible);
+        prevButton.gameObject.SetActive(!visible);
+        stageButtonsObject.SetActive(false);
     }
 }

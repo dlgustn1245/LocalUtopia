@@ -20,5 +20,5 @@ MonoBehaviour:
   comment: "\uC911\uC559 \uB9D8\uBAA8\uC2A4\uBC31\uD654\uC810\uC758\\n\u2018\uD654\uC0AC\uD55C
     \uC0C1\uD488\u2019 \uC138 \uAC00\uC9C0\uB97C \uCC3E\uC544\uBCF4\uC138\uC694."
   enemyCount: 3
-  clearRatio: 77.5
+  clearRatio: 80
   deathCount: 3
