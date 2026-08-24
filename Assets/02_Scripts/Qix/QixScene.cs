@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,13 +11,17 @@ namespace Qix
     //
     // 이동은 꼭짓점 단위로 끊어서 처리한다. 프레임마다 위치를 보고 역산하면 빠르게 움직일 때
     // 지나친 변을 놓쳐 궤적에 구멍이 생기기 때문이다.
-    public class QixController : MonoBehaviour
+    public class QixScene : MonoBehaviour
     {
-        StageData stage;
+        readonly List<Vector2Int> enemyCells = new();
+        readonly QixCaptureService captureService = new();
         
         public Player player;
         public float cellWorldSize;
         public QixGridRenderer gridRenderer;
+
+        public TextMeshProUGUI percentageText;
+        public TextMeshProUGUI timerText;
 
         // 플레이 영역(월드 단위). 화면 전체가 아니라 상단 HUD, 하단 조작 UI 자리를 뺀 크기를 지정한다.
         // QixManager 를 선택하면 씬 뷰에 초록 사각형으로 표시되므로 보면서 조절하면 된다.
@@ -24,16 +30,24 @@ namespace Qix
 
         public Slider ratioSlider;
 
-        readonly List<Vector2Int> enemyCells = new();
-        readonly QixCaptureService captureService = new();
+        public Button clearPopup;
+        public Button failPopup;
+
+        public GameObject deathCountIcon;
+        public Transform deathCountParent;
 
         QixGrid grid;
         QixTrail trail;
 
+        StageData stage;
         Vector2Int currentVertex;
         Vector2Int targetVertex;
         bool isMoving;
         bool canMove = true;
+
+        Coroutine timerCoroutine;
+        WaitForSeconds delay;
+        int remainTime;
 
         void Awake()
         {
@@ -44,18 +58,27 @@ namespace Qix
         void Start()
         {
             InitStage();
-            if (gridRenderer != null)
-            {
-                gridRenderer.Bind(grid, trail);
-            }
-
-            if (ratioSlider != null)
-            {
-                ratioSlider.value = 0f;
-            }
+            gridRenderer.Bind(grid, trail);
+            ratioSlider.value = 0f;
+            percentageText.text = "0%";
             
             // 좌상단 모서리에서 시작한다. 아레나 테두리라 항상 이동 가능한 선 위다.
             SetPlayerFirstVertex();
+
+            timerCoroutine = StartCoroutine(StartTimer());
+            BindButtonEvent();
+        }
+
+        void BindButtonEvent()
+        {
+            clearPopup.onClick.AddListener(() =>
+            {
+                SceneLoader.Load(SceneNames.Title);
+            });
+            failPopup.onClick.AddListener(() =>
+            {
+                SceneLoader.Load(SceneNames.Title);
+            });
         }
 
         void InitStage()
@@ -63,11 +86,28 @@ namespace Qix
             stage = GameManager.Instance.stages[GameManager.Instance.currStage];
             GameManager.Instance.deathCount = stage.deathCount;
             gridRenderer.backgroundRenderer.sprite = stage.hiddenImage;
+
+            for (int i = 0; i < stage.deathCount; i++)
+            {
+                Instantiate(deathCountIcon, deathCountParent);
+            }
         }
 
         void SetPlayerFirstVertex()
         {
             MovePlayerToVertex(new Vector2Int(0, grid.Rows));
+        }
+
+        IEnumerator StartTimer()
+        {
+            delay = new WaitForSeconds(1.0f);
+
+            for (remainTime = stage.timer; remainTime > 0; remainTime--)
+            {
+                timerText.text = $"TIME {remainTime}";
+                yield return delay;
+            }
+            HandlePlayerDeath(true);
         }
 
         // 플레이어를 특정 꼭짓점으로 순간 이동시킨다.
@@ -128,8 +168,7 @@ namespace Qix
         {
             var direction = player.InputDirection;
             
-            //플레이어가 죽은 경우
-            if (GameManager.Instance.isDead || !canMove)
+            if (!canMove)
             {
                 return;
             }
@@ -210,10 +249,9 @@ namespace Qix
 
             if (capturedCells > 0)
             {
-                if (ratioSlider != null)
-                {
-                    ratioSlider.value = grid.ClaimedRatio;
-                }
+                ratioSlider.value = grid.ClaimedRatio;
+                percentageText.text = $"{Mathf.FloorToInt(grid.ClaimedRatio * 100f)}%";
+                
                 if (grid.ClaimedRatio * 100f >= stage.clearRatio)
                 {
                     print("Stage Clear");
@@ -228,44 +266,56 @@ namespace Qix
             SetPlayerFirstVertex();
             grid.ClaimAllArea();
             RefreshRenderer();
+            StopCoroutine(timerCoroutine);
 
             GameManager.Instance.StageClear();
             
-            if (ratioSlider != null)
-            {
-                ratioSlider.value = 1.0f;
-            }
+            ratioSlider.value = 1.0f;
+            percentageText.text = "100%";
+            clearPopup.gameObject.SetActive(true);
         }
 
-        void HandlePlayerDeath()
+        void HandlePlayerDeath(bool force = false)
         {
             SetTrailEdges(EdgeState.None);
 
-            if (CheckPlayerDead())
-            {
-                print("Player Dead");
-                SetPlayerFirstVertex();
-            }
-            
-            // 궤적을 시작한 지점으로 되돌린다. 그 자리는 반드시 선 위였다.
             var respawnVertex = trail.Points.Count > 0 ? trail.Points[0] : currentVertex;
             trail.Cancel();
             player.SetSafeSprite();
 
-            MovePlayerToVertex(respawnVertex);
+            if (force || CheckPlayerDead())
+            {
+                StopCoroutine(timerCoroutine);
+                canMove = false;
+                failPopup.gameObject.SetActive(true);
+                SetPlayerFirstVertex();
+                RefreshRenderer();
+                return;
+            }
 
+            MovePlayerToVertex(respawnVertex);
             RefreshRenderer();
         }
 
         bool CheckPlayerDead()
         {
+            RemoveDeathCountIcon();
+
             if (--GameManager.Instance.deathCount <= 0)
             {
-                GameManager.Instance.isDead = true;
                 return true;
             }
 
             return false;
+        }
+
+        void RemoveDeathCountIcon()
+        {
+            int last = deathCountParent.childCount - 1;
+            if (last >= 0)
+            {
+                Destroy(deathCountParent.GetChild(last).gameObject);
+            }
         }
 
         void SetTrailEdges(EdgeState state)
@@ -280,10 +330,7 @@ namespace Qix
 
         void RefreshRenderer()
         {
-            if (gridRenderer != null)
-            {
-                gridRenderer.Refresh();
-            }
+            gridRenderer.Refresh();
         }
     }
 }

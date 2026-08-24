@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: Stage_Bonus
   m_EditorClassIdentifier: 
   hiddenImage: {fileID: 21300000, guid: 4108ec5335bbfc642afd9f70d927ad27, type: 3}
-  enemy: {fileID: 0}
+  enemy:
+  - {fileID: 0}
   enemyAnims:
   - {fileID: 2800000, guid: 86bc2a1bdcdf6cb49bd55bb32ef03b4a, type: 3}
   comment: "\uC544\uC9C1\uB3C4 \uC548\uAC00\uACE0 \uC788\uC5C8\uB0D0?"
   enemyCount: 3
+  timer: 120
   clearRatio: 90
-  deathCount: 1
+  deathCount: 5
+  isBonusStage: 1

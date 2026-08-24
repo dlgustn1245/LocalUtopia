@@ -14,7 +14,7 @@ public class TitleScene : MonoBehaviour
 
     void Start()
     {
-        GameManager.Instance.Init(stageButtons.Length);
+        GameManager.Instance.InitStage(stageButtons.Length);
         BindButtonEvent();
         SetTitleVisible(true);
     }

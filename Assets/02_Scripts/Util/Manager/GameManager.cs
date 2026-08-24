@@ -5,8 +5,6 @@ public class GameManager : Singleton<GameManager>
     public StageData[] stages;
     
     public int deathCount;
-    public bool isDead;
-
     public int currStage;
     
     int totalStage;
@@ -26,9 +24,8 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
-    public void Init(int stageCount)
+    public void InitStage(int stageCount)
     {
-        isDead = false;
         currStage = -1;
         totalStage = stageCount;
 

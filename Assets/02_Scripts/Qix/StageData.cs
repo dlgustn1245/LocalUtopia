@@ -8,6 +8,8 @@ public class StageData : ScriptableObject
     public Texture[] enemyAnims;
     public string comment;
     public int enemyCount;
+    public int timer;
     public float clearRatio;
     public int deathCount;
+    public bool isBonusStage;
 }
