@@ -30,6 +30,7 @@ namespace Qix
 
         public Slider ratioSlider;
 
+        public Button bonusClearPopup;
         public Button clearPopup;
         public Button failPopup;
 
@@ -82,6 +83,10 @@ namespace Qix
             failPopup.onClick.AddListener(() =>
             {
                 SceneLoader.Load(SceneNames.Title);
+            });
+            bonusClearPopup.onClick.AddListener(() =>
+            {
+                SceneLoader.Load(SceneNames.Ending);
             });
         }
 
@@ -278,10 +283,16 @@ namespace Qix
                 GameManager.Instance.StageClear();
             }
 
-
             ratioSlider.value = 1.0f;
             percentageText.text = "100%";
-            clearPopup.gameObject.SetActive(true);
+            if (stage.isBonusStage)
+            {
+                bonusClearPopup.gameObject.SetActive(true);
+            }
+            else
+            {
+                clearPopup.gameObject.SetActive(true);
+            }
         }
 
         void HandlePlayerDeath(bool force = false)
