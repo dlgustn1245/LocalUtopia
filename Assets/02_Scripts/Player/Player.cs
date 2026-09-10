@@ -17,9 +17,26 @@ public class Player : MonoBehaviour
 
     public Vector2Int InputDirection { get; private set; }
 
+    // 화면 D-pad 가 넣어 주는 방향. 키보드 입력이 없을 때만 쓴다.
+    Vector2Int touchDirection;
+
     void Update()
     {
         ReadInput();
+    }
+
+    public void SetTouchDirection(Vector2Int direction)
+    {
+        touchDirection = direction;
+    }
+
+    // 지금 눌려 있는 방향이 맞을 때만 지운다. 버튼 사이를 미끄러질 때 새 방향이 덮어써진 뒤 옛 버튼의 해제가 와도 안전하다.
+    public void ClearTouchDirection(Vector2Int direction)
+    {
+        if (touchDirection == direction)
+        {
+            touchDirection = Vector2Int.zero;
+        }
     }
 
     public void SetSafeSprite()
@@ -78,7 +95,7 @@ public class Player : MonoBehaviour
         }
         else
         {
-            InputDirection = Vector2Int.zero;
+            InputDirection = touchDirection;
         }
     }
 }
