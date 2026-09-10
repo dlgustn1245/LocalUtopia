@@ -496,6 +496,7 @@ MonoBehaviour:
   failPopup: {fileID: 299827967}
   deathCountIcon: {fileID: 4194458008452383536, guid: a143e03a03fa2fb48b0e17464c3540a3, type: 3}
   deathCountParent: {fileID: 932682776}
+  debugStage: {fileID: 11400000, guid: 5ce7cdd6ba366044082814313f1bc8f1, type: 2}
 --- !u!1 &500001
 GameObject:
   m_ObjectHideFlags: 0
@@ -597,6 +598,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   backgroundRenderer: {fileID: 398800106}
+  pixelsPerCell: 8
+  lineThickness: 4
   emptyColor: {r: 0, g: 0, b: 0, a: 1}
   claimedColor: {r: 0, g: 0, b: 0, a: 0}
   lineColor: {r: 0, g: 1, b: 0, a: 0.78431374}

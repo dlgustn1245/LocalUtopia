@@ -36,10 +36,14 @@ namespace Qix
         public GameObject deathCountIcon;
         public Transform deathCountParent;
 
+        // GameManager 없이 이 씬만 단독 실행할 때 쓰는 스테이지. 타이틀을 거쳐 들어오면 무시된다.
+        public StageData debugStage;
+
         QixGrid grid;
         QixTrail trail;
 
         StageData stage;
+        int remainingLives;
         Vector2Int currentVertex;
         Vector2Int targetVertex;
         bool isMoving;
@@ -83,8 +87,9 @@ namespace Qix
 
         void InitStage()
         {
-            stage = GameManager.Instance.stages[GameManager.Instance.currStage];
-            GameManager.Instance.deathCount = stage.deathCount;
+            var gameManager = GameManager.Instance;
+            stage = gameManager != null ? gameManager.stages[gameManager.currStage] : debugStage;
+            remainingLives = stage.deathCount;
             gridRenderer.backgroundRenderer.sprite = stage.hiddenImage;
 
             for (int i = 0; i < stage.deathCount; i++)
@@ -268,8 +273,12 @@ namespace Qix
             RefreshRenderer();
             StopCoroutine(timerCoroutine);
 
-            GameManager.Instance.StageClear();
-            
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.StageClear();
+            }
+
+
             ratioSlider.value = 1.0f;
             percentageText.text = "100%";
             clearPopup.gameObject.SetActive(true);
@@ -301,12 +310,7 @@ namespace Qix
         {
             RemoveDeathCountIcon();
 
-            if (--GameManager.Instance.deathCount <= 0)
-            {
-                return true;
-            }
-
-            return false;
+            return --remainingLives <= 0;
         }
 
         void RemoveDeathCountIcon()
