@@ -206,6 +206,34 @@ namespace Qix
             return horizontalEdges[a.x, Mathf.Max(a.y, b.y)] == EdgeState.Boundary;
         }
 
+        // 양옆 칸이 모두 확보된 변을 지운다. 두 미확보 영역을 갈랐던 옛 궤적이 양쪽 다 확보된 뒤에도 남아
+        // 확보 영역 내부를 걸어 다닐 수 있게 되는 것을 막는다. 확보 영역은 둘레만 다닐 수 있어야 한다.
+        // 바깥 테두리는 한쪽이 격자 밖이라 여기서 지워지지 않는다.
+        public void ClearEdgesInsideClaimed()
+        {
+            for (int x = 0; x < Columns; x++)
+            {
+                for (int y = 1; y < Rows; y++)
+                {
+                    if (cells[x, y - 1] == CellState.Claimed && cells[x, y] == CellState.Claimed)
+                    {
+                        horizontalEdges[x, y] = EdgeState.None;
+                    }
+                }
+            }
+
+            for (int x = 1; x < Columns; x++)
+            {
+                for (int y = 0; y < Rows; y++)
+                {
+                    if (cells[x - 1, y] == CellState.Claimed && cells[x, y] == CellState.Claimed)
+                    {
+                        verticalEdges[x, y] = EdgeState.None;
+                    }
+                }
+            }
+        }
+
         // 렌더러가 변을 직접 훑을 수 있게 열어 둔다. 인덱스 범위는 각 배열의 크기와 같다.
         public EdgeState GetHorizontalEdge(int x, int y)
         {

@@ -2,16 +2,23 @@ using UnityEngine;
 
 namespace Qix
 {
-    // 그리드 상태를 텍스처로 시각화한다. 알고리즘 확인용 샘플 렌더러.
+    // 그리드 상태를 텍스처로 시각화한다.
     //
-    // 선(변)은 두께가 없어 칸 텍스처로 그대로 표현할 수 없으므로, 변마다 한쪽 칸을 칠해 나타낸다.
-    // 판정은 변으로 하고 표시만 칸 단위로 근사하는 것이라 게임 로직에는 영향이 없다.
-    // 확보 영역 선과 궤적이 같은 규칙으로 1칸씩 그려지므로 두께가 항상 같다.
+    // 텍스처는 칸당 pixelsPerCell 픽셀로 만든다. 칸과 같은 해상도로 만들면 선(변)이 칸 하나를 통째로
+    // 덮어 확보 영역의 경계가 실제보다 두껍게 보이기 때문이다.
+    // 선은 두 칸 사이의 변 위치에 lineThickness 픽셀로 중심을 맞춰 그린다. 판정은 변으로 하고 표시만 픽셀로
+    // 근사하는 것이라 게임 로직에는 영향이 없다.
     [RequireComponent(typeof(SpriteRenderer))]
     public class QixGridRenderer : MonoBehaviour
     {
         public SpriteRenderer backgroundRenderer;
-        
+
+        // 칸 하나가 차지하는 텍스처 픽셀 수. 클수록 선이 얇아 보이지만 텍스처 메모리는 제곱으로 늘어난다.
+        public int pixelsPerCell = 8;
+
+        // 선 두께(픽셀). 변에 중심을 맞추므로 짝수면 양쪽 칸을 같은 폭으로 침범한다.
+        public int lineThickness = 4;
+
         public Color emptyColor;
         public Color claimedColor;
         public Color lineColor;
@@ -25,6 +32,8 @@ namespace Qix
         // RGBA32 텍스처와 형식이 같아 SetPixels32 가 변환 없이 복사한다.
         // Color(float x4, 16바이트) 대신 쓰면 버퍼 크기도 1/4 이다.
         Color32[] pixelBuffer;
+        int textureWidth;
+        int textureHeight;
         bool isDirty;
 
         void Awake()
@@ -54,18 +63,25 @@ namespace Qix
 
             grid = targetGrid;
             trail = targetTrail;
-            texture = new Texture2D(grid.Columns, grid.Rows, TextureFormat.RGBA32, false)
+
+            pixelsPerCell = Mathf.Max(1, pixelsPerCell);
+            lineThickness = Mathf.Clamp(lineThickness, 1, pixelsPerCell);
+            textureWidth = grid.Columns * pixelsPerCell;
+            textureHeight = grid.Rows * pixelsPerCell;
+
+            texture = new Texture2D(textureWidth, textureHeight, TextureFormat.RGBA32, false)
             {
                 filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Clamp
             };
-            pixelBuffer = new Color32[grid.Columns * grid.Rows];
+            pixelBuffer = new Color32[textureWidth * textureHeight];
 
+            // pixelsPerUnit 을 칸당 픽셀 수로 두면 스프라이트 크기가 칸 수와 같아져 스케일 계산이 그대로다.
             spriteRenderer.sprite = Sprite.Create(
                 texture,
-                new Rect(0, 0, grid.Columns, grid.Rows),
+                new Rect(0, 0, textureWidth, textureHeight),
                 new Vector2(0.5f, 0.5f),
-                1f);
+                pixelsPerCell);
 
             var fieldWorldSize = new Vector2(grid.Columns * grid.CellSize.x, grid.Rows * grid.CellSize.y);
 
@@ -78,7 +94,7 @@ namespace Qix
                 backgroundRenderer.transform.localScale = new Vector3(fieldWorldSize.x / spriteSize.x, fieldWorldSize.y / spriteSize.y, 1f);
                 backgroundRenderer.transform.position = grid.Origin + fieldWorldSize * 0.5f;
             }
-            
+
             isDirty = false;
             Redraw();
         }
@@ -116,8 +132,8 @@ namespace Qix
             {
                 for (int x = 0; x < grid.Columns; x++)
                 {
-                    pixelBuffer[y * grid.Columns + x] =
-                        grid.GetState(new Vector2Int(x, y)) == CellState.Claimed ? claimed : empty;
+                    var color = grid.GetState(new Vector2Int(x, y)) == CellState.Claimed ? claimed : empty;
+                    PaintRect(x * pixelsPerCell, y * pixelsPerCell, (x + 1) * pixelsPerCell, (y + 1) * pixelsPerCell, color);
                 }
             }
         }
@@ -176,36 +192,50 @@ namespace Qix
             }
         }
 
-        // 선은 칸과 칸 사이에 놓이므로 한쪽 칸만 칠해 두께를 1칸으로 맞춘다.
-        // 위/오른쪽 칸을 기본으로 삼고 격자 밖이면 반대쪽으로 넘긴다.
-        // 확보 영역 선과 궤적이 같은 규칙을 쓰므로 궤적이 선으로 승격돼도 위치가 튀지 않는다.
-        //
-        // 변이 끝나는 꼭짓점 쪽 칸까지 칠하는 이유:
-        // 가로 변은 위쪽 칸을, 세로 변은 오른쪽 칸을 잡기 때문에 "왼쪽 가로 + 아래 세로"로 꺾이는
-        // 모서리에서만 두 칸이 대각선으로 어긋난다. 끝 칸을 함께 칠하면 네 방향 모두 공통 칸이 생긴다.
-        // 같은 줄에 칠하므로 직선 구간의 두께는 그대로 1칸이다.
+        // 변의 양 끝을 두께의 절반만큼 늘려 그린다. 꺾이는 모서리에서 두 선이 빈틈없이 만나게 하기 위함이다.
         void PaintHorizontalEdge(int x, int y, Color32 color)
         {
-            int row = y < grid.Rows ? y : y - 1;
-            PaintCell(x, row, color);
-            PaintCell(x + 1, row, color);
+            int half = lineThickness / 2;
+            int startY = LineStart(y * pixelsPerCell, textureHeight);
+            PaintRect(
+                x * pixelsPerCell - half, startY,
+                (x + 1) * pixelsPerCell + half, startY + lineThickness,
+                color);
         }
 
         void PaintVerticalEdge(int x, int y, Color32 color)
         {
-            int column = x < grid.Columns ? x : x - 1;
-            PaintCell(column, y, color);
-            PaintCell(column, y + 1, color);
+            int half = lineThickness / 2;
+            int startX = LineStart(x * pixelsPerCell, textureWidth);
+            PaintRect(
+                startX, y * pixelsPerCell - half,
+                startX + lineThickness, (y + 1) * pixelsPerCell + half,
+                color);
         }
 
-        void PaintCell(int x, int y, Color32 color)
+        // 선을 변 위치에 중심을 맞추되, 바깥 테두리는 텍스처 밖으로 잘리지 않게 안쪽으로 밀어 넣는다.
+        // 그래야 테두리도 내부 선과 같은 두께로 보인다.
+        int LineStart(int center, int textureSize)
         {
-            if (x < 0 || x >= grid.Columns || y < 0 || y >= grid.Rows)
-            {
-                return;
-            }
+            return Mathf.Clamp(center - lineThickness / 2, 0, textureSize - lineThickness);
+        }
 
-            pixelBuffer[y * grid.Columns + x] = color;
+        // [x0, x1) x [y0, y1) 픽셀 사각형을 칠한다. 텍스처 범위를 벗어나는 부분은 잘라낸다.
+        void PaintRect(int x0, int y0, int x1, int y1, Color32 color)
+        {
+            x0 = Mathf.Max(x0, 0);
+            y0 = Mathf.Max(y0, 0);
+            x1 = Mathf.Min(x1, textureWidth);
+            y1 = Mathf.Min(y1, textureHeight);
+
+            for (int y = y0; y < y1; y++)
+            {
+                int rowStart = y * textureWidth;
+                for (int x = x0; x < x1; x++)
+                {
+                    pixelBuffer[rowStart + x] = color;
+                }
+            }
         }
 
         // 런타임 생성 Texture2D / Sprite 는 GC 로 네이티브 메모리가 회수되지 않아 직접 파괴한다.

@@ -42,7 +42,11 @@ namespace Qix
             }
 
             SelectRegionsToKeep(grid, enemyCells);
-            return ClaimUnkeptRegions(grid);
+            int claimedCount = ClaimUnkeptRegions(grid);
+
+            // 새로 확보된 칸 사이에 남은 옛 선을 정리한다. 궤적은 항상 남긴 영역과 맞닿으므로 여기서 지워지지 않는다.
+            grid.ClearEdgesInsideClaimed();
+            return claimedCount;
         }
 
         // 미확보 칸마다 영역 번호를 매기고 영역 개수를 반환한다.
