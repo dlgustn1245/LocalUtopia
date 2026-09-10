@@ -15,6 +15,7 @@ public class TitleScene : MonoBehaviour
     void Start()
     {
         GameManager.Instance.InitStage(stageButtons.Length);
+        
         BindButtonEvent();
         SetTitleVisible(true);
     }
@@ -29,6 +30,8 @@ public class TitleScene : MonoBehaviour
 
     void BindButtonEvent()
     {
+        bool allCleared = GameManager.Instance.AllCleared;
+        
         for (int i = 0; i < stageButtons.Length; i++)
         {
             int idx = i;
@@ -37,7 +40,8 @@ public class TitleScene : MonoBehaviour
                 GameManager.Instance.currStage = idx;
                 SceneLoader.Load(SceneNames.Loading);
             });
-
+            
+            stageButtons[idx].gameObject.SetActive(!GameManager.Instance.stages[idx].isBonusStage || allCleared);
             clearMarks[idx].SetActive(GameManager.Instance.IsCleared(idx));
         }
         

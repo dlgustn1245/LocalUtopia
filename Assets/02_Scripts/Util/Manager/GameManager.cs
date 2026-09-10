@@ -14,7 +14,7 @@ public class GameManager : Singleton<GameManager>
         {
             for (int i = 0; i < totalStage; i++)
             {
-                if (!IsCleared(i))
+                if (!stages[i].isBonusStage && !IsCleared(i))
                 {
                     return false;
                 }
