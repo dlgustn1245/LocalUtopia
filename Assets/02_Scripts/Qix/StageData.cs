@@ -12,4 +12,5 @@ public class StageData : ScriptableObject
     public float clearRatio;
     public int deathCount;
     public bool isBonusStage;
+    public AudioClip bgm;
 }

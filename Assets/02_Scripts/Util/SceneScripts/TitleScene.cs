@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class TitleScene : MonoBehaviour
@@ -8,6 +9,8 @@ public class TitleScene : MonoBehaviour
     public GameObject[] clearMarks;
 
     public Button popupButton, prevButton;
+    public Button settingButton;
+    public GameObject settingPopup;
     public GameObject titleText;
 
     bool isTitleVisible = true;
@@ -22,7 +25,8 @@ public class TitleScene : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        // 설정 버튼처럼 UI 위를 누른 클릭은 버튼 onClick 이 처리하므로 타이틀 진행으로 먹지 않는다.
+        if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
         {
             OnClickTitle();
         }
@@ -58,7 +62,14 @@ public class TitleScene : MonoBehaviour
             stageButtonsObject.SetActive(true);
             popupButton.gameObject.SetActive(false);
         });
-        prevButton.onClick.AddListener(() => SetTitleVisible(true));
+        prevButton.onClick.AddListener(() =>
+        {
+            SetTitleVisible(true);
+        });
+        settingButton.onClick.AddListener(() =>
+        {
+            settingPopup.SetActive(true);
+        });
     }
 
     void OnClickTitle()
@@ -73,6 +84,7 @@ public class TitleScene : MonoBehaviour
 
     void SetTitleVisible(bool visible)
     {
+        settingButton.gameObject.SetActive(visible);
         isTitleVisible = visible;
         titleText.SetActive(visible);
         popupButton.gameObject.SetActive(!visible);

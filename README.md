@@ -50,11 +50,11 @@ Assets/
 │  │  ├─ QixScene.cs           게임 씬 컨트롤러
 │  │  └─ StageData.cs          스테이지 설정 ScriptableObject
 │  └─ Util/
-│     ├─ Singleton.cs          MonoBehaviour 제네릭 싱글톤
+│     ├─ Singleton.cs          MonoBehaviour 제네릭 싱글톤. 프로젝트 창 Create > Scripting > Singleton 으로 상속 스크립트 생성
 │     ├─ SceneLoader.cs        SceneNames 상수 + 씬 로더
 │     ├─ SceneFader.cs         씬 진입 페이드인
 │     ├─ Manager/GameManager.cs   스테이지 목록, 현재 스테이지, 클리어 저장
-│     └─ SceneScripts/         Title / Loading / Ending / Credit 씬 스크립트
+│     └─ SceneScripts/         Title / Loading / Ending / Credit 씬 스크립트, GameSetting(타이틀 설정 팝업 UI)
 └─ 03_Resources/
    ├─ Font/                    NeoDunggeunmo, NotoSansKR SDF
    ├─ Component/               UI 이미지. 번호 순으로 관리한다.
@@ -129,7 +129,7 @@ PlayerPrefs `Stage{인덱스}` 키에 클리어 여부를 1로 저장한다. 별
 ## 아직 없는 것
 
 - 적. `CatEnemy`는 빈 클래스이고 `QixScene.SetEnemyCells`를 호출하는 곳이 없다. 현재 사망 조건은 자기 교차와 타이머만이다.
-- 사운드, 점수, 설정 화면.
+- 사운드. 설정 팝업은 데이터 초기화만 있고 음소거·볼륨은 사운드와 함께 붙인다. 점수는 넣지 않기로 했다.
 
 ## 코드 규칙
 
