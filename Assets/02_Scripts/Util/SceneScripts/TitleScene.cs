@@ -12,6 +12,7 @@ public class TitleScene : MonoBehaviour
     public Button settingButton;
     public GameObject settingPopup;
     public GameObject titleText;
+    public GameObject logo;
 
     bool isTitleVisible = true;
 
@@ -93,6 +94,8 @@ public class TitleScene : MonoBehaviour
         settingButton.gameObject.SetActive(visible);
         isTitleVisible = visible;
         titleText.SetActive(visible);
+        // 스테이지 목록은 로고 자리까지 쓰므로 타이틀 텍스트와 함께 숨긴다.
+        logo.SetActive(visible);
         popupButton.gameObject.SetActive(!visible);
         prevButton.gameObject.SetActive(!visible);
         stageButtonsObject.SetActive(false);
