@@ -21,6 +21,7 @@ public class LoadingScene : MonoBehaviour
     {
         var stage = GameManager.Instance.CurrentStage;
         comment.text = stage.comment;
+        SoundManager.Instance.PlayBGM(stage.bgm);
 
         for (int i = 0; i < 6; i++)
         {

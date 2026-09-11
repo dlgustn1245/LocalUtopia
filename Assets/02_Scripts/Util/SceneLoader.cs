@@ -29,6 +29,7 @@ public static class SceneLoader
             return;
         }
         
+        Debug.Log($"Scene: {sceneName} loaded");
         loadScene.completed += _ => isLoading = false;
     }
 }

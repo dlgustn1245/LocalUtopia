@@ -18,10 +18,10 @@ MonoBehaviour:
   enemyAnims:
   - {fileID: 2800000, guid: 6ba27d905d65c664b8417ccf5489da9b, type: 3}
   - {fileID: 2800000, guid: d84cf4d2cb34a2b4da5287506b85c3b5, type: 3}
-  comment: "\uBE44\uC624\uB294 \uB0A0\uC528\uB97C \uD53C\uD574\\n\uC911\uC559\uC544\uD30C\uD2B8
-    \uC9C0\uB3C4\uB97C\\n\uC644\uC131\uD560 \uC218 \uC788\uB3C4\uB85D \uB3C4\uC640\uC8FC\uC138\uC694!"
+  comment: "\uBE44\uC624\uB294 \uB0A0\uC528\uB97C \uD53C\uD574\\n\uC911\uC559\uC544\uD30C\uD2B8 \uC9C0\uB3C4\uB97C\\n\uC644\uC131\uD560 \uC218 \uC788\uB3C4\uB85D \uB3C4\uC640\uC8FC\uC138\uC694!"
   enemyCount: 3
   timer: 60
   clearRatio: 85
   deathCount: 1
   isBonusStage: 0
+  bgm: {fileID: 8300000, guid: 547e752fed71e4e4e8f479677b4d3717, type: 3}

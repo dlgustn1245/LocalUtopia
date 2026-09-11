@@ -21,6 +21,7 @@ public class TitleScene : MonoBehaviour
 
         BindButtonEvent();
         SetTitleVisible(true);
+        SoundManager.Instance.PlayBGM(SoundManager.Instance.menuBgm);
     }
 
     void Update()
@@ -28,6 +29,7 @@ public class TitleScene : MonoBehaviour
         // 설정 버튼처럼 UI 위를 누른 클릭은 버튼 onClick 이 처리하므로 타이틀 진행으로 먹지 않는다.
         if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             OnClickTitle();
         }
     }
@@ -51,6 +53,7 @@ public class TitleScene : MonoBehaviour
             {
                 GameManager.Instance.currStage = idx;
                 SceneLoader.Load(SceneNames.Loading);
+                SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             });
             
             stageButtons[idx].gameObject.SetActive(!stages[idx].isBonusStage || allCleared);
@@ -59,15 +62,18 @@ public class TitleScene : MonoBehaviour
         
         popupButton.onClick.AddListener(() =>
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             stageButtonsObject.SetActive(true);
             popupButton.gameObject.SetActive(false);
         });
         prevButton.onClick.AddListener(() =>
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             SetTitleVisible(true);
         });
         settingButton.onClick.AddListener(() =>
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             settingPopup.SetActive(true);
         });
     }

@@ -37,9 +37,6 @@ namespace Qix
         public GameObject deathCountIcon;
         public Transform deathCountParent;
 
-        // GameManager 없이 이 씬만 단독 실행할 때 쓰는 스테이지. 타이틀을 거쳐 들어오면 무시된다.
-        public StageData debugStage;
-
         QixGrid grid;
         QixTrail trail;
 
@@ -78,22 +75,24 @@ namespace Qix
         {
             clearPopup.onClick.AddListener(() =>
             {
+                SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
                 SceneLoader.Load(SceneNames.Title);
             });
             failPopup.onClick.AddListener(() =>
             {
+                SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
                 SceneLoader.Load(SceneNames.Title);
             });
             bonusClearPopup.onClick.AddListener(() =>
             {
+                SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
                 SceneLoader.Load(SceneNames.Ending);
             });
         }
 
         void InitStage()
         {
-            var gameManager = GameManager.Instance;
-            stage = gameManager != null ? gameManager.CurrentStage : debugStage;
+            stage = GameManager.Instance.CurrentStage;
             remainingLives = stage.deathCount;
             gridRenderer.backgroundRenderer.sprite = stage.hiddenImage;
 
@@ -249,6 +248,7 @@ namespace Qix
 
         void CompleteTrail()
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.territorySfx);
             SetTrailEdges(EdgeState.Boundary);
             trail.Cancel();
             player.SetSafeSprite();
@@ -282,15 +282,13 @@ namespace Qix
 
         void StageClear()
         {
+            SoundManager.Instance.StopBGM();
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.completeSfx);
             SetPlayerFirstVertex();
             grid.ClaimAllArea();
             RefreshRenderer();
             StopCoroutine(timerCoroutine);
-
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.StageClear();
-            }
+            GameManager.Instance.StageClear();
 
             ratioSlider.value = 1.0f;
             percentageText.text = "100%";
@@ -314,6 +312,8 @@ namespace Qix
 
             if (force || CheckPlayerDead())
             {
+                SoundManager.Instance.StopBGM();
+                SoundManager.Instance.PlaySFX(SoundManager.Instance.failSfx);
                 StopCoroutine(timerCoroutine);
                 canMove = false;
                 failPopup.gameObject.SetActive(true);

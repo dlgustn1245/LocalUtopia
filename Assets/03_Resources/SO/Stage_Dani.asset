@@ -20,10 +20,10 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 6ba36871a78b10744a7415d128a74665, type: 3}
   - {fileID: 2800000, guid: f3ba57be8647256438582ae9b07a983a, type: 3}
   - {fileID: 2800000, guid: 8ab58565c9729a34c988374ec4e01383, type: 3}
-  comment: "\uBE4C\uB7F0\uC744 \uB9C8\uC8FC\uCE58\uC9C0 \uC54A\uACE0 \uC911\uC559\uC0C1\uAC00\uB97C\\n\uC815\uD0D0\uD560
-    \uC218 \uC788\uAC8C \uB3C4\uC640\uC8FC\uC138\uC694!"
+  comment: "\uBE4C\uB7F0\uC744 \uB9C8\uC8FC\uCE58\uC9C0 \uC54A\uACE0 \uC911\uC559\uC0C1\uAC00\uB97C\\n\uC815\uD0D0\uD560 \uC218 \uC788\uAC8C \uB3C4\uC640\uC8FC\uC138\uC694!"
   enemyCount: 3
   timer: 120
   clearRatio: 77.5
   deathCount: 4
   isBonusStage: 0
+  bgm: {fileID: 8300000, guid: 70c689ae23dfcd84e8ce8add397daff8, type: 3}

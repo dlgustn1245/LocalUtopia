@@ -12,9 +12,11 @@ public class EndingScene : MonoBehaviour
 
     void Start()
     {
+        SoundManager.Instance.PlayBGM(SoundManager.Instance.endingBgm);
         text.text = lines[index];
         button.onClick.AddListener(() =>
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             if (++index < lines.Length)
             {
                 text.text = lines[index];

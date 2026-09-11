@@ -23,3 +23,4 @@ MonoBehaviour:
   clearRatio: 90
   deathCount: 5
   isBonusStage: 1
+  bgm: {fileID: 8300000, guid: 6523d8f0c2b082a418c773a81d2d6a24, type: 3}
