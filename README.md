@@ -20,11 +20,19 @@ Unity로 만든 세로형 모바일 게임. 선을 그려 영역을 확보하는
 
 | 씬 | 스크립트 | 하는 일 |
 |---|---|---|
-| 01_Title | `TitleScene`, `GameSetting` | 스테이지 버튼 목록. 클리어한 스테이지에 마크 표시. 일반 스테이지를 모두 깨면 보너스 버튼이 나타난다. 설정 팝업(`GameSetting`)에서 음소거·BGM/SFX 볼륨·데이터 초기화. GameManager, SoundManager 가 이 씬에 있다. |
+| 01_Title | `TitleScene`, `GameSetting` | 스테이지 버튼 목록. 클리어한 스테이지에 마크 표시. 일반 스테이지를 모두 깨면 보너스 버튼이 나타난다. 설정 팝업(`GameSetting`)에서 음소거·BGM/SFX 볼륨·데이터 초기화. 로고 뒤로 구름이 흐르고, 바닥에는 엔딩과 같은 아파트(화면 폭 맞춤)가 깔려 그 잔디 위를 고양이가 걸어 다닌다(발자국 4개는 정적). 스테이지 버튼 묶음(`Buttons - Stages`)은 y=75 로 올려 두어 아파트 지붕 선(-420)과의 겹침을 줄였다. 보너스 버튼만 아파트 위에 얹힌다. GameManager, SoundManager 가 이 씬에 있다. |
 | 02_Loading | `LoadingScene` | 선택한 스테이지의 적 애니메이션과 코멘트를 0.5초 간격으로 6프레임 보여준 뒤 게임 씬으로 넘어간다. 스테이지 BGM 은 여기서 시작해 게임 씬까지 이어진다. |
 | 03_Qix | `QixScene` | 게임 본편. 이동, 궤적, 영역 확보, 타이머, 목숨, 클리어/실패 팝업. |
-| 04_Ending | `EndingScene` | 버튼을 누를 때마다 다음 대사를 보여주고, 마지막 대사 뒤 크레딧으로 간다. |
-| 05_Credit | `CreditScene` | `RectMask2D` 뷰포트 안에서 크레딧 텍스트가 위로 흐르고, 끝나면 바닥에서 다시 올라온다. |
+| 04_Ending | `EndingScene` | 버튼을 누를 때마다 다음 대사를 보여주고, 마지막 대사 뒤 크레딧으로 간다. 하늘 배경 위에 식물이 자란 아파트, 그 앞 잔디를 스테이지 적들이 한 줄로 지나간다. |
+| 05_Credit | `CreditScene` | `RectMask2D` 뷰포트 안에서 크레딧 텍스트가 위로 흐르고, 끝나면 바닥에서 다시 올라온다. 하늘 배경, 화면 좌우 아래 모서리의 러너 덤불(한쪽 변이 직선인 모서리용 스프라이트), 바닥을 걷는 고양이. |
+
+세 씬의 장식(구름, 고양이, 행렬)은 모두 `Drifter`가 붙은 UI Image 이고 `raycastTarget` 을 끈다. 타이틀은 클릭 판정에 `IsPointerOverGameObject` 를 쓰므로 장식이 raycast 를 받으면 진행이 막힌다.
+
+장식 규칙:
+- 캐릭터·구름은 원본의 2배, 배경 계열(`3.bg`, `5.apart`처럼 412px 폭으로 그려진 그림)은 화면 폭에 맞춰 2.62배로 깐다.
+- `Drifter`는 부모 가운데 앵커(0.5, 0.5) 기준으로 동작한다. 화면 밖으로 나가면 "부모 폭 + `wrapPadding`(기본 300)"만큼 되돌아온다. 자기 폭으로 되돌리면 폭이 다른 행렬의 간격이 한 바퀴마다 틀어져 겹친다.
+- 엔딩 행렬은 같은 속도로 두어 간격을 유지한다. 대사 보드는 아파트 지붕 선 위에 아래 띠가 놓이도록 올려 두었다.
+- 로딩·플레이 씬은 꾸미지 않는다. 로딩은 3초짜리에 적 애니메이션이 이미 움직이고, 플레이는 선을 읽는 화면이라 배경 움직임이 방해가 된다.
 
 씬 이름은 `SceneNames` 상수로만 참조한다. 씬 전환은 `SceneLoader.Load`가 담당하며 로딩 중 중복 요청을 막는다.
 
@@ -52,6 +60,7 @@ Assets/
 │     ├─ Singleton.cs          MonoBehaviour 제네릭 싱글톤. 프로젝트 창 Create > Scripting > Singleton 으로 상속 스크립트 생성
 │     ├─ SceneLoader.cs        SceneNames 상수 + 씬 로더
 │     ├─ SceneFader.cs         씬 진입 페이드인
+│     ├─ Drifter.cs            장식 UI 이동. 가로 흐름/되돌아오기, 위아래 흔들림, 프레임 순환. 타이틀·엔딩·크레딧 구름과 캐릭터에 사용
 │     ├─ Manager/GameManager.cs   스테이지 목록, 현재 스테이지, 클리어 저장
 │     ├─ Manager/SoundManager.cs  BGM/SFX 채널 각 1개, 채널 볼륨·음소거 저장
 │     └─ SceneScripts/         Title / Loading / Ending / Credit 씬 스크립트, GameSetting(타이틀 설정 팝업 UI)
