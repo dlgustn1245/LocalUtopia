@@ -93,7 +93,7 @@ namespace Qix
         void InitStage()
         {
             var gameManager = GameManager.Instance;
-            stage = gameManager != null ? gameManager.stages[gameManager.currStage] : debugStage;
+            stage = gameManager != null ? gameManager.CurrentStage : debugStage;
             remainingLives = stage.deathCount;
             gridRenderer.backgroundRenderer.sprite = stage.hiddenImage;
 
@@ -239,7 +239,7 @@ namespace Qix
             }
 
             grid.SetEdge(previous, vertex, EdgeState.Trail);
-            RefreshRenderer();
+            gridRenderer.RefreshTrail();
 
             if (grid.IsBoundaryVertex(vertex))
             {
@@ -257,12 +257,21 @@ namespace Qix
             int capturedCells = captureService.Capture(grid, enemyCells);
             RefreshRenderer();
 
+            // 적 영역을 남기는 모드에서는 궤적 양쪽이 모두 확보되어 현재 꼭짓점의 선이 전부 지워질 수 있다.
+            // 그대로 두면 어느 방향으로도 못 움직이므로 테두리로 되돌린다.
+            // ponytail: 가장 가까운 선 위 꼭짓점을 찾는 대신 시작 모서리로 보낸다. 적 구현 후 체감이 나쁘면 개선.
+            if (!grid.IsBoundaryVertex(currentVertex))
+            {
+                SetPlayerFirstVertex();
+            }
+
             if (capturedCells > 0)
             {
-                ratioSlider.value = grid.ClaimedRatio;
-                percentageText.text = $"{Mathf.FloorToInt(grid.ClaimedRatio * 100f)}%";
-                
-                if (grid.ClaimedRatio * 100f >= stage.clearRatio)
+                float claimedRatio = grid.ClaimedRatio;
+                ratioSlider.value = claimedRatio;
+                percentageText.text = $"{Mathf.FloorToInt(claimedRatio * 100f)}%";
+
+                if (claimedRatio * 100f >= stage.clearRatio)
                 {
                     print("Stage Clear");
                     canMove = false;

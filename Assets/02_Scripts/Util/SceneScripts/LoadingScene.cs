@@ -19,7 +19,7 @@ public class LoadingScene : MonoBehaviour
 
     IEnumerator PlayLoading()
     {
-        var stage = GameManager.Instance.stages[GameManager.Instance.currStage];
+        var stage = GameManager.Instance.CurrentStage;
         comment.text = stage.comment;
 
         for (int i = 0; i < 6; i++)

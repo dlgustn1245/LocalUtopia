@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // 플레이어의 입력 처리와 이동을 전담한다.
@@ -17,25 +18,32 @@ public class Player : MonoBehaviour
 
     public Vector2Int InputDirection { get; private set; }
 
-    // 화면 D-pad 가 넣어 주는 방향. 키보드 입력이 없을 때만 쓴다.
-    Vector2Int touchDirection;
+    // 화면 D-pad 에서 포인터(손가락/마우스)별로 잡고 있는 방향. 마지막에 잡은 것이 우선한다. 키보드 입력이 없을 때만 쓴다.
+    //
+    // 방향이 아니라 포인터 ID 로 기록하는 이유: PointerUp 은 처음 누른 버튼에만 오므로, 슬라이드로 들어간 버튼은
+    // 자기 Up 을 받지 못한다. 같은 포인터 ID 를 지우면 어느 버튼에 잡혔든 함께 풀린다.
+    // 손가락마다 ID 가 다르므로 한 손가락을 떼도 다른 손가락이 잡은 방향은 남는다.
+    readonly List<(int pointerId, Vector2Int direction)> heldDirections = new(4);
 
     void Update()
     {
         ReadInput();
     }
 
-    public void SetTouchDirection(Vector2Int direction)
+    public void SetTouchDirection(int pointerId, Vector2Int direction)
     {
-        touchDirection = direction;
+        ClearTouchDirection(pointerId);
+        heldDirections.Add((pointerId, direction));
     }
 
-    // 지금 눌려 있는 방향이 맞을 때만 지운다. 버튼 사이를 미끄러질 때 새 방향이 덮어써진 뒤 옛 버튼의 해제가 와도 안전하다.
-    public void ClearTouchDirection(Vector2Int direction)
+    public void ClearTouchDirection(int pointerId)
     {
-        if (touchDirection == direction)
+        for (int i = heldDirections.Count - 1; i >= 0; i--)
         {
-            touchDirection = Vector2Int.zero;
+            if (heldDirections[i].pointerId == pointerId)
+            {
+                heldDirections.RemoveAt(i);
+            }
         }
     }
 
@@ -95,7 +103,7 @@ public class Player : MonoBehaviour
         }
         else
         {
-            InputDirection = touchDirection;
+            InputDirection = heldDirections.Count > 0 ? heldDirections[^1].direction : Vector2Int.zero;
         }
     }
 }

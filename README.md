@@ -57,7 +57,9 @@ Assets/
 │     └─ SceneScripts/         Title / Loading / Ending / Credit 씬 스크립트
 └─ 03_Resources/
    ├─ Font/                    NeoDunggeunmo, NotoSansKR SDF
-   └─ Component/               UI 이미지. 번호 순으로 관리한다.
+   ├─ Component/               UI 이미지. 번호 순으로 관리한다.
+   ├─ Prefab/                  목숨 아이콘 등 런타임에 Instantiate 하는 프리팹
+   └─ SO/                      StageData 에셋 (Stage_*.asset)
 ```
 
 ## 핵심 로직 (Qix)
@@ -102,7 +104,7 @@ Assets/
 
 ### 렌더링
 
-`QixGridRenderer`가 칸당 `pixelsPerCell` 픽셀 크기의 `Texture2D` 한 장에 `Color32[]` 버퍼를 채워 `SetPixels32`로 올린다. 선은 변 위치에 `lineThickness` 픽셀로 중심을 맞춰 그린다. `Refresh()`는 dirty 플래그만 세우고 `LateUpdate`에서 프레임당 한 번만 업로드한다. 텍스처와 스프라이트는 `OnDestroy`에서 `Destroy`한다.
+`QixGridRenderer`가 칸당 `pixelsPerCell` 픽셀 크기의 `Texture2D` 한 장에 `Color32[]` 버퍼를 채워 `SetPixels32`로 올린다. 선은 변 위치에 `lineThickness` 픽셀로 중심을 맞춰 그린다. dirty는 두 단계다. 칸·경계가 바뀌면 `Refresh()`로 전체를 다시 칠하고, 궤적 꼭짓점만 늘었으면 `RefreshTrail()`로 궤적 변만 덧칠한다. 어느 쪽이든 업로드는 `LateUpdate`에서 프레임당 한 번이다. 텍스처와 스프라이트는 `OnDestroy`에서 `Destroy`한다. 80x140 칸 기준 `pixelsPerCell` 4면 텍스처가 약 0.7MB이고 매 프레임 전체를 업로드하므로 그 이상으로 올리지 않는다.
 
 ## 스테이지 데이터
 

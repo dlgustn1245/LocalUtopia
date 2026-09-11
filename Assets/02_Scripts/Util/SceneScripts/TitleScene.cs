@@ -14,8 +14,8 @@ public class TitleScene : MonoBehaviour
 
     void Start()
     {
-        GameManager.Instance.InitStage(stageButtons.Length);
-        
+        GameManager.Instance.InitStage();
+
         BindButtonEvent();
         SetTitleVisible(true);
     }
@@ -30,9 +30,17 @@ public class TitleScene : MonoBehaviour
 
     void BindButtonEvent()
     {
+        var stages = GameManager.Instance.stages;
         bool allCleared = GameManager.Instance.AllCleared;
-        
-        for (int i = 0; i < stageButtons.Length; i++)
+
+        // 세 배열은 같은 인덱스로 정렬돼 있어야 한다. 길이가 다르면 예외 대신 로그를 남기고 겹치는 범위만 묶는다.
+        if (stageButtons.Length != stages.Length || clearMarks.Length != stages.Length)
+        {
+            Debug.LogError($"스테이지 배열 길이 불일치: stages={stages.Length}, buttons={stageButtons.Length}, marks={clearMarks.Length}");
+        }
+
+        int count = Mathf.Min(stageButtons.Length, stages.Length, clearMarks.Length);
+        for (int i = 0; i < count; i++)
         {
             int idx = i;
             stageButtons[idx].onClick.AddListener(() =>
@@ -41,7 +49,7 @@ public class TitleScene : MonoBehaviour
                 SceneLoader.Load(SceneNames.Loading);
             });
             
-            stageButtons[idx].gameObject.SetActive(!GameManager.Instance.stages[idx].isBonusStage || allCleared);
+            stageButtons[idx].gameObject.SetActive(!stages[idx].isBonusStage || allCleared);
             clearMarks[idx].SetActive(GameManager.Instance.IsCleared(idx));
         }
         

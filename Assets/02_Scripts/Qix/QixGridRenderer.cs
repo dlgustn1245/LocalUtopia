@@ -14,10 +14,11 @@ namespace Qix
         public SpriteRenderer backgroundRenderer;
 
         // 칸 하나가 차지하는 텍스처 픽셀 수. 클수록 선이 얇아 보이지만 텍스처 메모리는 제곱으로 늘어난다.
-        public int pixelsPerCell = 8;
+        // 80x140 칸 기준 4 → 320x560(약 0.7MB), 8 → 640x1120(약 2.9MB). 매 프레임 전체를 업로드하므로 4 를 넘기지 말 것.
+        public int pixelsPerCell = 4;
 
         // 선 두께(픽셀). 변에 중심을 맞추므로 짝수면 양쪽 칸을 같은 폭으로 침범한다.
-        public int lineThickness = 4;
+        public int lineThickness = 2;
 
         public Color emptyColor;
         public Color claimedColor;
@@ -34,7 +35,11 @@ namespace Qix
         Color32[] pixelBuffer;
         int textureWidth;
         int textureHeight;
-        bool isDirty;
+
+        // 두 단계 dirty. 칸·경계가 바뀌면 전체를 다시 칠하고, 궤적만 늘었으면 궤적 변만 버퍼에 덧칠한다.
+        // 궤적을 그리는 동안은 거의 매 프레임 갱신되므로 전체 칸(수만 개)을 매번 채우지 않는 것이 핵심이다.
+        bool isStructureDirty;
+        bool isTrailDirty;
 
         void Awake()
         {
@@ -43,13 +48,17 @@ namespace Qix
 
         void LateUpdate()
         {
-            if (!isDirty)
+            if (isStructureDirty)
             {
-                return;
+                Redraw();
+            }
+            else if (isTrailDirty)
+            {
+                RedrawTrailOnly();
             }
 
-            isDirty = false;
-            Redraw();
+            isStructureDirty = false;
+            isTrailDirty = false;
         }
 
         void OnDestroy()
@@ -95,15 +104,21 @@ namespace Qix
                 backgroundRenderer.transform.position = grid.Origin + fieldWorldSize * 0.5f;
             }
 
-            isDirty = false;
+            isStructureDirty = false;
+            isTrailDirty = false;
             Redraw();
         }
 
-        // 한 프레임에 여러 칸이 바뀌어도 텍스처 업로드는 프레임당 한 번이면 충분하다.
-        // 궤적을 그리는 동안 프레임마다 여러 번 호출되므로 여기서 곧바로 다시 그리지 않는다.
+        // 칸이나 경계가 바뀌었을 때. 한 프레임에 여러 번 불려도 텍스처 업로드는 프레임당 한 번이면 충분하다.
         public void Refresh()
         {
-            isDirty = true;
+            isStructureDirty = true;
+        }
+
+        // 궤적 꼭짓점이 하나 늘었을 때. 칸·경계는 그대로이므로 궤적 변만 덧칠한다.
+        public void RefreshTrail()
+        {
+            isTrailDirty = true;
         }
 
         void Redraw()
@@ -119,6 +134,19 @@ namespace Qix
             // 그리는 중인 궤적이 가장 잘 보여야 하므로 마지막에 덮어쓴다.
             PaintTrail();
 
+            texture.SetPixels32(pixelBuffer);
+            texture.Apply(false);
+        }
+
+        // 버퍼에는 직전 프레임의 칸·경계·궤적이 그대로 남아 있으므로 궤적 변만 덧칠하면 된다.
+        void RedrawTrailOnly()
+        {
+            if (grid == null)
+            {
+                return;
+            }
+
+            PaintTrail();
             texture.SetPixels32(pixelBuffer);
             texture.Apply(false);
         }
@@ -255,7 +283,8 @@ namespace Qix
 
             pixelBuffer = null;
             trail = null;
-            isDirty = false;
+            isStructureDirty = false;
+            isTrailDirty = false;
         }
     }
 }
