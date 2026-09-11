@@ -9,8 +9,7 @@ Unity로 만든 세로형 모바일 게임. 선을 그려 영역을 확보하는
 ## 실행
 
 1. Unity Hub에서 6000.6.0f1로 프로젝트를 연다.
-2. `Assets/01_Scenes/01_Title.unity`를 열고 재생한다.
-3. `03_Qix` 씬을 단독 재생할 때는 `QixScene` 컴포넌트의 `debugStage`에 StageData를 하나 꽂아 둔다. 타이틀을 거치면 무시된다.
+2. `Assets/01_Scenes/01_Title.unity`를 열고 재생한다. GameManager 와 SoundManager 가 타이틀 씬에만 있으므로 다른 씬을 단독 재생하면 동작하지 않는다.
 
 ## 씬 흐름
 
@@ -21,8 +20,8 @@ Unity로 만든 세로형 모바일 게임. 선을 그려 영역을 확보하는
 
 | 씬 | 스크립트 | 하는 일 |
 |---|---|---|
-| 01_Title | `TitleScene` | 스테이지 버튼 목록. 클리어한 스테이지에 마크 표시. 일반 스테이지를 모두 깨면 보너스 버튼이 나타난다. |
-| 02_Loading | `LoadingScene` | 선택한 스테이지의 적 애니메이션과 코멘트를 0.5초 간격으로 6프레임 보여준 뒤 게임 씬으로 넘어간다. |
+| 01_Title | `TitleScene`, `GameSetting` | 스테이지 버튼 목록. 클리어한 스테이지에 마크 표시. 일반 스테이지를 모두 깨면 보너스 버튼이 나타난다. 설정 팝업(`GameSetting`)에서 음소거·BGM/SFX 볼륨·데이터 초기화. GameManager, SoundManager 가 이 씬에 있다. |
+| 02_Loading | `LoadingScene` | 선택한 스테이지의 적 애니메이션과 코멘트를 0.5초 간격으로 6프레임 보여준 뒤 게임 씬으로 넘어간다. 스테이지 BGM 은 여기서 시작해 게임 씬까지 이어진다. |
 | 03_Qix | `QixScene` | 게임 본편. 이동, 궤적, 영역 확보, 타이머, 목숨, 클리어/실패 팝업. |
 | 04_Ending | `EndingScene` | 버튼을 누를 때마다 다음 대사를 보여주고, 마지막 대사 뒤 크레딧으로 간다. |
 | 05_Credit | `CreditScene` | `RectMask2D` 뷰포트 안에서 크레딧 텍스트가 위로 흐르고, 끝나면 바닥에서 다시 올라온다. |
@@ -54,10 +53,12 @@ Assets/
 │     ├─ SceneLoader.cs        SceneNames 상수 + 씬 로더
 │     ├─ SceneFader.cs         씬 진입 페이드인
 │     ├─ Manager/GameManager.cs   스테이지 목록, 현재 스테이지, 클리어 저장
+│     ├─ Manager/SoundManager.cs  BGM/SFX 채널 각 1개, 채널 볼륨·음소거 저장
 │     └─ SceneScripts/         Title / Loading / Ending / Credit 씬 스크립트, GameSetting(타이틀 설정 팝업 UI)
 └─ 03_Resources/
    ├─ Font/                    NeoDunggeunmo, NotoSansKR SDF
    ├─ Component/               UI 이미지. 번호 순으로 관리한다.
+   │  └─ Sound/                BGM 8개(파일명에 BGM 포함), SFX 4개
    ├─ Prefab/                  목숨 아이콘 등 런타임에 Instantiate 하는 프리팹
    └─ SO/                      StageData 에셋 (Stage_*.asset)
 ```
@@ -106,6 +107,56 @@ Assets/
 
 `QixGridRenderer`가 칸당 `pixelsPerCell` 픽셀 크기의 `Texture2D` 한 장에 `Color32[]` 버퍼를 채워 `SetPixels32`로 올린다. 선은 변 위치에 `lineThickness` 픽셀로 중심을 맞춰 그린다. dirty는 두 단계다. 칸·경계가 바뀌면 `Refresh()`로 전체를 다시 칠하고, 궤적 꼭짓점만 늘었으면 `RefreshTrail()`로 궤적 변만 덧칠한다. 어느 쪽이든 업로드는 `LateUpdate`에서 프레임당 한 번이다. 텍스처와 스프라이트는 `OnDestroy`에서 `Destroy`한다. 80x140 칸 기준 `pixelsPerCell` 4면 텍스처가 약 0.7MB이고 매 프레임 전체를 업로드하므로 그 이상으로 올리지 않는다.
 
+## 사운드
+
+`SoundManager`(타이틀 씬, DontDestroyOnLoad)가 AudioSource 두 개를 갖는다. BGM 채널은 루프, SFX 채널은 `PlayOneShot`.
+
+### BGM 흐름
+
+| 시점 | 호출 | 곡 |
+|---|---|---|
+| Title Start | `PlayBGM(menuBgm)` | 메뉴 |
+| Loading Start | `PlayBGM(stage.bgm)` | 스테이지. Qix 씬에서는 다시 부르지 않아 곡이 끊기지 않는다. |
+| 클리어 / 실패 | `StopBGM()` 후 징글 | 없음. 팝업 버튼을 누르기 전까지 정적. |
+| Ending Start | `PlayBGM(endingBgm)` | 엔딩. Credit 까지 이어진다. |
+
+`PlayBGM`은 같은 클립이 재생 중이면 다시 시작하지 않는다. 씬 전환 직전에 `StopBGM`을 부르면 페이드 사이에 빈 구간만 생기므로 결과 팝업에서만 부른다.
+
+### SFX
+
+| 클립 | 재생 시점 |
+|---|---|
+| `selectSfx` | 타이틀 진행, 모든 UI 버튼 |
+| `territorySfx` | 궤적 완성(`CompleteTrail`) |
+| `completeSfx` | 스테이지 클리어 |
+| `failSfx` | 목숨 소진 / 시간 초과 |
+
+### 볼륨과 음소거
+
+채널 볼륨은 각 AudioSource 의 `volume`, 음소거는 `AudioListener.volume` 0/1 로 나눈다. 음소거를 풀어도 채널 값이 남는다.
+
+저장은 두 단계다. `SetBgmVolume`, `SetSfxVolume`는 PlayerPrefs 값만 쓰고 `Save()`는 부르지 않는다. 슬라이더 드래그 중 매 프레임 불리기 때문이다. 디스크 동기화는 설정 팝업(`GameSetting`)의 `OnDisable`에서 한 번 한다. `SetMute`는 한 번 눌릴 때 한 번이라 즉시 저장한다.
+
+### 설정 팝업 (`GameSetting`)
+
+타이틀 씬 `Panel - SettingPanel`에 붙는다. 음소거 토글, BGM/SFX 슬라이더, 데이터 초기화, 닫기 버튼.
+
+- 팝업이 열릴 때 `SetIsOnWithoutNotify` / `SetValueWithoutNotify`로 저장값을 UI 에 넣는다. 이벤트를 울리지 않아 표시가 저장으로 오해되지 않는다.
+- 값 변경은 즉시 적용된다. 별도 저장·설정 초기화 버튼은 두지 않는다.
+- SFX 슬라이더는 조절 중 들리는 게 없어서, 코드로 붙인 `EventTrigger`의 `PointerUp`에서 `selectSfx`를 한 번 재생한다.
+- 슬라이더 트랙·토글 배경은 `25.time_board`(9-slice 6px), 손잡이는 `53.game_cursor`.
+
+### 임포트 규칙
+
+파일명에 `BGM`이 들어가면 배경음, 아니면 효과음으로 본다.
+
+| 구분 | Load Type | 압축 | 기타 |
+|---|---|---|---|
+| BGM (2분 이상) | Streaming | Vorbis 70% | Preload 끔, Load In Background 켬 |
+| SFX (1초 이하) | Decompress On Load | Vorbis 70% | Preload 켬 |
+
+둘 다 Force To Mono. 새 클립을 추가하면 같은 규칙으로 맞춘다.
+
 ## 스테이지 데이터
 
 `StageData` ScriptableObject를 `GameManager.stages`에 인덱스 순서로 꽂는다. 타이틀의 `stageButtons`, `clearMarks`도 같은 인덱스로 정렬돼 있어야 한다.
@@ -119,17 +170,27 @@ Assets/
 | `clearRatio` | 클리어에 필요한 확보 비율(%) |
 | `deathCount` | 목숨 수 |
 | `isBonusStage` | 보너스 스테이지 여부. 클리어 시 엔딩으로 간다. 해금 조건 계산에서는 제외된다. |
+| `bgm` | 스테이지 BGM. 메뉴·엔딩 BGM 은 스테이지에 속하지 않으므로 `SoundManager` 필드에 둔다. |
 
 `enemy`, `enemyCount`는 아직 사용하지 않는다.
 
 ## 저장 데이터
 
-PlayerPrefs `Stage{인덱스}` 키에 클리어 여부를 1로 저장한다. 별도 해금 플래그는 없고, 보너스 해금은 `GameManager.AllCleared`가 매번 계산한다.
+PlayerPrefs 를 쓴다.
+
+| 키 | 값 | 쓰는 곳 |
+|---|---|---|
+| `Stage{인덱스}` | 클리어 시 1 | `GameManager` |
+| `bgmVolume`, `sfxVolume` | 0~1 | `SoundManager` |
+| `mute` | 0 / 1 | `SoundManager` |
+
+별도 해금 플래그는 없고, 보너스 해금은 `GameManager.AllCleared`가 매번 계산한다. 설정 팝업의 데이터 초기화(`GameManager.DeleteData`)는 `Stage{인덱스}` 키만 지우고 타이틀을 다시 로드한다. 사운드 설정은 지우지 않는다.
 
 ## 아직 없는 것
 
 - 적. `CatEnemy`는 빈 클래스이고 `QixScene.SetEnemyCells`를 호출하는 곳이 없다. 현재 사망 조건은 자기 교차와 타이머만이다.
-- 사운드. 설정 팝업은 데이터 초기화만 있고 음소거·볼륨은 사운드와 함께 붙인다. 점수는 넣지 않기로 했다.
+- 데이터 초기화 확인 팝업. 지금은 버튼을 누르면 바로 삭제되고 타이틀이 다시 로드된다.
+- 점수는 넣지 않기로 했다.
 
 ## 코드 규칙
 
