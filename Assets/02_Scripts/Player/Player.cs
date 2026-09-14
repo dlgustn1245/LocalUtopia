@@ -54,13 +54,18 @@ public class Player : MonoBehaviour
         }
     }
 
+    // 깜빡임이 끝났을 때 돌아갈 스프라이트. 깜빡이는 도중에 다시 그리기를 시작하면 draw 로 바뀌어 있어야 한다.
+    Sprite baseSprite;
+
     public void SetSafeSprite()
     {
+        baseSprite = safeSprite;
         spriteRenderer.sprite = safeSprite;
     }
 
     public void SetDrawSprite()
     {
+        baseSprite = drawSprite;
         spriteRenderer.sprite = drawSprite;
     }
 
@@ -80,7 +85,7 @@ public class Player : MonoBehaviour
             spriteRenderer.enabled = true;
             yield return blinkDelay;
         }
-        SetSafeSprite();
+        spriteRenderer.sprite = baseSprite;
     }
 
     // 목표 좌표를 향해 한 프레임만큼 이동한다. 도달했으면 true.

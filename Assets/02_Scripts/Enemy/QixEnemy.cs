@@ -8,6 +8,9 @@ public abstract class QixEnemy : MonoBehaviour
     public float moveSpeed = 2f;
     public float frameInterval = 0.25f;
 
+    // 본체 접촉 판정 반지름. 스프라이트보다 작게 둔다. 그림 크기대로 잡으면 테두리 근처를 지나기만 해도 죽는다.
+    public float hitRadius = 0.15f;
+
     public bool keepRegion = true;
 
     public Vector2Int cell;

@@ -108,6 +108,7 @@ MonoBehaviour:
   spriteRenderer: {fileID: 2198710321065903693}
   moveSpeed: 2
   frameInterval: 0.25
+  hitRadius: 0.16
   keepRegion: 0
   cell: {x: 0, y: 0}
   respawnDelay: 1.5

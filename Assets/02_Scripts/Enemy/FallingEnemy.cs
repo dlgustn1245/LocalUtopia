@@ -44,19 +44,23 @@ public class FallingEnemy : QixEnemy
         respawnTimer = respawnDelay;
     }
 
-    // 맨 윗줄에서 빈 칸을 찾아 다시 떨어진다. 윗줄이 전부 확보됐으면 한 주기 더 기다린다.
+    // 임의 열에서 가장 위의 빈 칸을 찾아 다시 떨어진다.
+    // 맨 윗줄만 보면 플레이어가 윗부분을 확보한 뒤로는 영원히 재등장하지 못한다. 남은 영역의 천장에서 나오게 한다.
     void TryRespawn()
     {
-        int top = grid.Rows - 1;
         for (int i = 0; i < 16; i++)
         {
-            var spawnCell = new Vector2Int(Random.Range(0, grid.Columns), top);
-            if (grid.GetState(spawnCell) == CellState.Empty)
+            int x = Random.Range(0, grid.Columns);
+            for (int y = grid.Rows - 1; y >= 0; y--)
             {
-                Place(spawnCell);
-                spriteRenderer.enabled = true;
-                isFalling = true;
-                return;
+                var spawnCell = new Vector2Int(x, y);
+                if (grid.GetState(spawnCell) == CellState.Empty)
+                {
+                    Place(spawnCell);
+                    spriteRenderer.enabled = true;
+                    isFalling = true;
+                    return;
+                }
             }
         }
 

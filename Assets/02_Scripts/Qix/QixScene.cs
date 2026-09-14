@@ -56,6 +56,7 @@ namespace Qix
         bool canMove = true;
 
         Coroutine timerCoroutine;
+        Coroutine blinkCoroutine;
         WaitForSeconds delay;
         WaitForSeconds invincibleDelay;
         int remainTime;
@@ -127,7 +128,7 @@ namespace Qix
                 for (int j = 0; j < spawn.count; j++)
                 {
                     var enemy = Instantiate(spawn.prefab, transform).GetComponent<QixEnemy>();
-                    enemy.Init(grid, spawn.frames, OnEnemyTouchedTrail);
+                    enemy.Init(grid, spawn.frames, OnEnemyHit);
 
                     // 시작 시점엔 모든 칸이 Empty 라 실패하지 않는다. 실패해도 (0,0) 이라 안전하다.
                     grid.TryGetRandomEmptyCell(out var cell);
@@ -143,8 +144,8 @@ namespace Qix
             }
         }
 
-        // 적이 그리는 중인 궤적을 밟았다. 무적이면 무시하고, 살아남았으면 잠시 무적을 준다.
-        void OnEnemyTouchedTrail()
+        // 적이 궤적을 밟았거나 본체에 닿았다. 무적이면 무시하고, 살아남았으면 잠시 무적을 준다.
+        void OnEnemyHit()
         {
             if (player.isInvincible)
             {
@@ -154,6 +155,32 @@ namespace Qix
             if (HandlePlayerDeath())
             {
                 StartCoroutine(RunInvincible());
+            }
+        }
+
+        // 적 본체와의 접촉. 선을 그리는 중에만 판정한다. 테두리 위는 안전지대다.
+        void CheckEnemyContact()
+        {
+            if (!canMove || !trail.IsDrawing || player.isInvincible)
+            {
+                return;
+            }
+
+            Vector2 playerPosition = player.transform.position;
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                var enemy = enemies[i];
+                if (!enemy.spriteRenderer.enabled)
+                {
+                    continue; // 사라진 낙하형
+                }
+
+                float radius = enemy.hitRadius;
+                if (((Vector2)enemy.transform.position - playerPosition).sqrMagnitude < radius * radius)
+                {
+                    OnEnemyHit();
+                    return;
+                }
             }
         }
 
@@ -280,6 +307,7 @@ namespace Qix
                 ArriveAtVertex(targetVertex);
             }
 
+            CheckEnemyContact();
             TryStartNextMove();
         }
 
@@ -411,6 +439,7 @@ namespace Qix
             SoundManager.Instance.PlaySFX(SoundManager.Instance.completeSfx);
             SetPlayerFirstVertex();
             grid.ClaimAllArea();
+            RemoveClaimedTraps();
             RefreshRenderer();
             StopCoroutine(timerCoroutine);
             GameManager.Instance.StageClear();
@@ -459,7 +488,13 @@ namespace Qix
 
             MovePlayerToVertex(respawnVertex);
             RefreshRenderer();
-            StartCoroutine(player.PlayerHitBlink());
+
+            // 깜빡이는 도중에 또 죽으면 두 코루틴이 렌더러를 번갈아 끄고 켜서 엉킨다. 이전 것을 끊고 새로 시작한다.
+            if (blinkCoroutine != null)
+            {
+                StopCoroutine(blinkCoroutine);
+            }
+            blinkCoroutine = StartCoroutine(player.PlayerHitBlink());
             return true;
         }
 
