@@ -492,7 +492,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 200004}
-  trapPrefab: {fileID: 0}
+  trapPrefab: {fileID: 319489845203702297, guid: 65d2622b528048b19bbe47c0e789e4dd, type: 3}
   trapSlowMultiplier: 0.5
   invincibleDuration: 2
   cellWorldSize: 0.05
