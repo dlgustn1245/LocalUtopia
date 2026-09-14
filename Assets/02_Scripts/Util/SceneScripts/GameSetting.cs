@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class GameSetting : MonoBehaviour
@@ -9,6 +8,12 @@ public class GameSetting : MonoBehaviour
 
     public Toggle muteToggle;
     public Slider bgmVolume, sfxVolume;
+
+    public GameObject resetConfirmPanel;
+    public Button resetConfirm;
+    public Button resetNo;
+
+    public GameObject settingPanel;
 
     void Start()
     {
@@ -27,10 +32,21 @@ public class GameSetting : MonoBehaviour
     {
         resetButton.onClick.AddListener(() =>
         {
+            settingPanel.SetActive(false);
+            resetConfirmPanel.SetActive(true);
+        });
+        resetConfirm.onClick.AddListener(() =>
+        {
             SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             GameManager.Instance.DeleteData();
             SceneLoader.Load(SceneNames.Title);
         });
+        resetNo.onClick.AddListener(() =>
+        {
+            settingPanel.SetActive(true);
+            resetConfirmPanel.SetActive(false);
+        });
+        
         closeButton.onClick.AddListener(() =>
         {
             gameObject.SetActive(false);
