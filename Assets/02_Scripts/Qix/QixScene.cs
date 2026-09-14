@@ -29,6 +29,9 @@ namespace Qix
         // 눈에 보이는 거미줄 대부분이 아무 효과가 없다. 거미줄 그림 크기나 cellWorldSize 를 바꾸면 같이 맞춘다.
         public int trapCellRadius = 2;
 
+        // 거미줄을 밟은 뒤 느려져 있는 시간. readonly 로 두면 직렬화되지 않아 인스펙터에서 못 만진다.
+        public float trapSlowDelay = 1.5f;
+
         public float invincibleDuration = 2f;
 
         // 무적이 없는 사망(자기 교차) 연출 길이. 적 접촉 때는 무적 시간만큼 깜빡인다.
@@ -68,7 +71,6 @@ namespace Qix
         WaitForSeconds delay;
         int remainTime;
 
-        readonly float trapSlowDelay = 1.5f;
         Coroutine trapSlowCoroutine;
 
         void Awake()
@@ -242,7 +244,7 @@ namespace Qix
             }
         }
 
-        // 변의 양옆 칸 중 하나가 거미줄에 덮여 있으면 그 변을 지나는 동안 느려진다.
+        // 변의 양옆 칸 중 하나를 덮고 있는 거미줄의 중심 칸을 돌려준다. 밟은 거미줄을 없애야 해서 참/거짓만으로는 부족하다.
         bool TryGetTrapCell(Vector2Int from, Vector2Int to, out Vector2Int trapCenter)
         {
             if (traps.Count == 0)
@@ -330,6 +332,10 @@ namespace Qix
 
         void Update()
         {
+            // 이동 블록보다 먼저 본다. 아래에 두면 변을 건너는 중인 프레임은 early return 에 걸려 판정을 건너뛴다.
+            // 거미줄로 느려졌을 때 한 변에 여러 프레임이 걸리므로, 하필 가장 피하기 어려울 때 판정이 드물어진다.
+            CheckEnemyContact();
+
             if (isMoving)
             {
                 if (!player.MoveTowards(grid.VertexToWorld(targetVertex)))
@@ -341,7 +347,6 @@ namespace Qix
                 ArriveAtVertex(targetVertex);
             }
 
-            CheckEnemyContact();
             TryStartNextMove();
         }
 
@@ -418,10 +423,10 @@ namespace Qix
                 StopCoroutine(trapSlowCoroutine);
             }
 
-            trapSlowCoroutine = StartCoroutine(StepOnTrap());
+            trapSlowCoroutine = StartCoroutine(RunTrapSlow());
         }
 
-        IEnumerator StepOnTrap()
+        IEnumerator RunTrapSlow()
         {
             player.speedMultiplier = trapSlowMultiplier;
             yield return new WaitForSeconds(trapSlowDelay);
@@ -527,6 +532,15 @@ namespace Qix
             var respawnVertex = trail.Points.Count > 0 ? trail.Points[0] : currentVertex;
             trail.Cancel();
             player.SetSafeSprite();
+
+            // 거미줄 감속은 죽으면 푼다. 밟은 거미줄은 이미 사라졌고 부활 지점은 거기서 멀어서,
+            // 그대로 두면 화면에 원인이 없는 채로 느리게 움직인다.
+            if (trapSlowCoroutine != null)
+            {
+                StopCoroutine(trapSlowCoroutine);
+                trapSlowCoroutine = null;
+            }
+            player.speedMultiplier = 1f;
 
             if (force || CheckPlayerDead())
             {
