@@ -22,7 +22,7 @@ Unity로 만든 세로형 모바일 게임. 선을 그려 영역을 확보하는
 |---|---|---|
 | 01_Title | `TitleScene`, `GameSetting` | 타이틀 → 안내 팝업 → 스테이지 목록의 3단계 화면. 설정 팝업에서 음소거, BGM/SFX 볼륨, 데이터 초기화. GameManager, SoundManager 가 여기 있다. |
 | 02_Loading | `LoadingScene` | 선택한 스테이지의 적 애니메이션과 코멘트를 잠깐 보여준 뒤 게임 씬으로 넘어간다. 스테이지 BGM 이 여기서 시작된다. |
-| 03_Qix | `QixScene` | 게임 본편. 이동, 궤적, 영역 확보, 타이머, 목숨, 결과 팝업. |
+| 03_Qix | `QixScene` | 게임 본편. 이동, 궤적, 영역 확보, 적 스폰·접촉·함정, 타이머, 목숨, 결과 팝업. |
 | 04_Ending | `EndingScene` | 버튼을 누를 때마다 다음 대사. 마지막 대사 뒤 크레딧으로. |
 | 05_Credit | `CreditScene` | 크레딧 텍스트가 위로 흐르고 끝나면 바닥에서 다시 올라온다. 버튼으로 타이틀 복귀. |
 
@@ -71,10 +71,14 @@ Assets/
 ├─ 01_Scenes/                  씬 5개
 ├─ 02_Scripts/
 │  ├─ Player/
-│  │  ├─ Player.cs             입력 읽기와 좌표 이동만 담당. 어디로 갈 수 있는지는 판단하지 않는다.
+│  │  ├─ Player.cs             입력 읽기와 좌표 이동만 담당. 어디로 갈 수 있는지는 판단하지 않는다. 피격 깜빡임, 무적 플래그, 감속 배율
 │  │  └─ TouchDirectionButton.cs  화면 방향 버튼 하나. 누르는 동안 Player에 방향을 넘긴다.
 │  ├─ Enemy/
-│  │  └─ CatEnemy.cs           미구현 (빈 클래스)
+│  │  ├─ QixEnemy.cs           적 부모. 칸 위치, 벽·궤적 판정이 붙은 이동(MoveBy), 프레임 애니
+│  │  ├─ GlideEnemy.cs         랜덤 주기마다 빈 칸으로 직선 미끄러짐. 고양이·구름·발자국·경비
+│  │  ├─ FallingEnemy.cs       위에서 아래로 낙하, 사라졌다 재등장. 돈
+│  │  ├─ TrapperEnemy.cs       튕기며 직진, 주기마다 거미줄 요청. 거미
+│  │  └─ EnemyData.cs          스테이지가 적을 어떻게 스폰할지: prefab, count, frames
 │  ├─ Qix/
 │  │  ├─ CellState.cs          칸 상태: Empty / Claimed
 │  │  ├─ EdgeState.cs          변 상태: None / Boundary / Trail
@@ -97,6 +101,7 @@ Assets/
    ├─ Component/               UI 이미지. 번호 순으로 관리한다.
    │  └─ Sound/                BGM(파일명에 BGM 포함), SFX
    ├─ Prefab/                  목숨 아이콘 등 런타임에 Instantiate 하는 프리팹
+   │  └─ Enemy/                적 프리팹(그림별 1개) + SpiderWeb(거미줄)
    └─ SO/                      StageData 에셋 (Stage_*.asset)
 ```
 
@@ -129,7 +134,7 @@ Assets/
 1. 도착한 꼭짓점이 이미 지나온 곳이면 자기 교차로 사망.
 2. 도착한 꼭짓점에 `Boundary` 변이 닿아 있으면 궤적 완성. 궤적 변을 모두 `Boundary`로 승격한다.
 3. `QixCaptureService.Capture`가 `Empty` 칸을 BFS로 영역 번호를 매긴다. 두 칸 사이에 `Boundary` 변이 있으면 벽이다.
-4. 영역이 둘 이상이면 적이 있는 영역을 남기고 나머지를 `Claimed`로 바꾼다. 적이 없으면 가장 넓은 영역을 남긴다.
+4. 영역이 둘 이상이면 `keepRegion` 인 적이 있는 영역을 남기고 나머지를 `Claimed`로 바꾼다. 그런 적이 없으면 가장 넓은 영역을 남긴다.
 5. 양옆이 모두 `Claimed`인 변은 `None`으로 정리한다. 확보 영역 내부를 걸어 다닐 수 없게 하기 위함이다.
 6. 확보 비율이 `StageData.clearRatio` 이상이면 클리어.
 
@@ -139,17 +144,49 @@ Assets/
 
 1. **영역 번호 매기기**: 모든 칸을 순서대로 훑으며, 아직 번호가 없는 `Empty` 칸을 만나면 새 영역 번호를 부여하고 거기서 BFS 를 시작한다. BFS 는 상하좌우 이웃 중 범위 안이고, 번호가 없고, `Empty` 이고, **두 칸 사이에 `Boundary` 변이 없는** 칸만 같은 영역으로 넣는다. 벽 판정을 칸이 아니라 변으로 하는 것이 핵심이다. 궤적은 칸을 차지하지 않고 칸 사이를 지나므로, 칸만 봐서는 새로 그린 선이 영역을 갈랐다는 사실을 알 수 없다.
 2. **영역이 하나면 종료**: 궤적이 경계에 다시 닿기만 하고 영역을 가르지 못한 경우다. 확보할 것이 없으므로 0을 돌려준다.
-3. **남길 영역 고르기**: 적이 서 있는 칸의 영역 번호를 모두 모은다. 적이 여러 영역에 흩어져 있으면 그 영역들이 전부 남는다. 적이 하나도 없으면(테스트·초기 상태) 가장 넓은 영역 하나만 남긴다.
+3. **남길 영역 고르기**: `QixScene.CollectEnemyCells` 가 넘긴 칸(`keepRegion` 인 적의 `cell`)의 영역 번호를 모두 모은다. 적이 여러 영역에 흩어져 있으면 그 영역들이 전부 남는다. 하나도 없으면(낙하형만 있는 스테이지, 테스트) 가장 넓은 영역 하나만 남긴다.
 4. **확보**: 남길 영역에 속하지 않은 칸을 모두 `Claimed`로 바꾸고 개수를 센다.
 5. **선 정리**: 양옆이 모두 `Claimed`가 된 변을 `None`으로 되돌린다. 궤적은 항상 남긴 영역과 맞닿아 있으므로 여기서 지워지지 않는다.
 
 메모리: 영역별 칸 목록을 만들지 않는다. 칸마다 영역 번호 하나(`int[,]`)와 영역별 크기 배열만 두고, 큐·집합·배열은 인스턴스 필드로 재사용한다. 그리드 크기가 같으면 `Array.Clear`만 하고 다시 쓴다. static 으로 두면 버퍼가 씬을 벗어나도 살아남으므로 인스턴스로 유지한다.
 
+### 적
+
+적은 플레이어와 달리 꼭짓점이 아니라 칸 위를 자유롭게 움직인다. 종류마다 행동만 다르고 나머지는 부모 `QixEnemy` 가 맡는다.
+
+**이동과 판정 (`QixEnemy.MoveBy`)**: 이동량을 x/y 축으로 나눠 한 축씩 적용한다. 칸이 바뀌는 순간 두 칸 사이의 변(`QixGrid.GetEdgeBetweenCells`)을 본다.
+
+| 변 | 결과 |
+|---|---|
+| `Boundary` | 그 축만 되돌리고 막힘(true) 반환. 바깥 테두리도 `Boundary` 라 격자 밖으로 못 나간다 |
+| `Trail` | `onTrailHit` 콜백 → `QixScene.OnEnemyTouchedTrail` |
+| `None` | 통과 |
+
+축을 나누는 이유는 둘이다. 한 축이 막혀도 다른 축은 살아 벽을 따라 미끄러지고, 칸이 한 번에 한 축만 바뀌어 "두 칸은 인접하다" 는 전제가 지켜진다. 한 프레임 이동량은 축마다 한 칸(`CellSize`)으로 끊는다. 두 칸을 건너뛰면 사이의 변을 놓쳐 벽을 통과하기 때문이다. 그래서 적 속도 상한은 `cellWorldSize × 프레임레이트`(0.05 × 60 = 3 유닛/초)다. `WorldToCell` 은 격자 밖 좌표도 그대로 돌려준다. 클램프하면 마지막 칸에서 테두리를 넘는 순간을 못 잡는다.
+
+**종류**
+
+| 클래스 | 행동 | `keepRegion` | 스테이지 |
+|---|---|---|---|
+| `GlideEnemy` | `minRest~maxRest` 쉬고 빈 칸 하나(`QixGrid.TryGetRandomEmptyCell`)를 골라 직선으로 간다. 도착하거나 막히면 다시 쉰다. | 켬 | Dani(발자국), JaeJae(고양이), Namu(구름), Bonus(경비 3인) |
+| `FallingEnemy` | 아래로 떨어진다. 막히거나 자기 칸이 `Claimed` 면 렌더러를 끄고 `respawnDelay` 뒤 임의 열의 **가장 위 빈 칸**에서 다시 떨어진다. 맨 윗줄만 보면 윗부분을 확보한 뒤 영원히 안 나온다. `SetActive(false)` 는 Update 가 멈춰 타이머를 못 세니 쓰지 않는다. | 끔 | Sonqo(돈) |
+| `TrapperEnemy` | 랜덤 각도로 직진하다 막힌 축만 뒤집어 튕긴다. `trapInterval` 마다 `onPlaceTrap(cell)` 을 부른다. | 켬 | Leeguheok(거미) |
+
+`keepRegion` 은 영역 확보 때 이 적이 선 영역을 남길지다. 낙하형은 필드를 계속 가로지르므로 확보 순간 어디 있는지가 운이라 끈다. 그러면 Sonqo 는 적 칸이 비어 "가장 넓은 영역만 남긴다" 분기로 떨어지는데 그게 맞는 동작이다.
+
+**스폰**: `QixScene.SpawnEnemies` 가 `StageData.enemies`(`EnemyData[]`) 의 `prefab` 을 `count` 만큼 `Instantiate` 하고 `Init(grid, frames, 콜백)` → `Place(빈 칸)` 한다. 프리팹은 그림별로 하나씩(`Prefab/Enemy/`)이고 행동 수치(속도·주기)는 프리팹, 마릿수와 프레임은 `EnemyData` 에 둔다. 보너스처럼 인스턴스마다 그림이 다르면 `EnemyData` 를 여러 줄 쓴다. `Init` 은 생성자 대신이다. `Instantiate` 바로 다음 줄에서 부르면 `Awake` 는 이미 끝났고 첫 `Update` 는 아직이라 순서가 보장된다. 그래서 자식의 `Awake` 는 `grid` 를 쓰지 않는다.
+
+**함정(거미줄)**: 거미는 "언제·어디" 만 알리고 생성·감속·제거는 `QixScene` 이 한 곳에서 한다(거미가 둘 이상이어도 사전이 하나). `traps` 사전은 칸당 하나, `Empty` 칸에만 놓는다. 플레이어가 이동을 시작할 때 다음 변의 양옆 칸 중 하나에 거미줄이 있으면 `Player.speedMultiplier` 를 `trapSlowMultiplier` 로, 아니면 1 로 놓는다. 타이머 없이 그 변을 지나는 동안만 느리다. 확보된 칸의 거미줄은 `Capture` 직후와 클리어 때 `Destroy` 한다.
+
+메모리: 적·거미줄은 QixManager 의 자식으로 `Instantiate` 하므로 씬이 내려가면 함께 사라진다. 거미줄은 확보 시 명시적으로 `Destroy`. 적 코드에는 코루틴이 없고 타이머는 모두 `Tick` 안의 float 다.
+
 ### 사망과 타이머
 
 - 자기 교차 시 궤적 변을 `None`으로 되돌리고 궤적 시작점으로 복귀한다. 목숨이 0이 되면 실패 팝업.
+- 적 접촉은 두 가지다. 적이 궤적 변을 밟는 것(`MoveBy` 안에서 판정)과, **선을 그리는 중에** 적 본체가 플레이어와 `hitRadius`(프리팹) 안으로 겹치는 것(`QixScene.CheckEnemyContact`, 프레임마다 거리 비교). 테두리 위에 서 있을 때는 적이 스쳐도 안전하다. 어느 쪽이든 같은 처리 뒤 `invincibleDuration` 동안 무적이다(`Player.isInvincible`). 무적 중 적 접촉은 무시되지만 자기 교차·시간 초과는 그대로 죽는다. `hitRadius` 는 스프라이트보다 작게 둔다. 그림 크기대로 잡으면 칸(0.05)에 비해 너무 커서 억울한 죽음이 잦다.
+- 부활할 때 `Player.PlayerHitBlink` 로 피격 스프라이트를 깜빡인다. 깜빡이는 도중에 그리기를 시작할 수 있으므로 끝나면 `baseSprite`(safe/draw 중 마지막 것)로 돌아간다. 깜빡이는 중에 또 죽으면 이전 코루틴을 끊고 새로 시작한다.
 - 타이머는 코루틴으로 1초마다 줄어들고 0이 되면 즉시 실패.
-- 클리어·실패 모두 BGM 을 멈추고 징글을 재생한 뒤 팝업을 켠다.
+- 클리어·실패 모두 BGM 을 멈추고 징글을 재생한 뒤 팝업을 켠다. 적은 `enabled = false` 로 멈춘다.
 
 ### 렌더링
 
@@ -218,7 +255,8 @@ SFX:
 | 필드 | 뜻 |
 |---|---|
 | `hiddenImage` | 확보 영역 아래 드러나는 그림 |
-| `enemyAnims` | 로딩 씬에서 돌리는 애니메이션 프레임 |
+| `enemyAnims` | 로딩 씬에서 돌리는 애니메이션 프레임(Texture). 인게임 적 그림과 별개다. 보너스 로딩은 경비 4인 시트 한 장이지만 인게임은 개별 경비다 |
+| `enemies` | `EnemyData[]`. 줄마다 `prefab`(Prefab/Enemy/), `count`, `frames`(인게임 애니 Sprite 배열, `frameInterval` 마다 순환). 보너스는 경비별로 세 줄 |
 | `comment` | 로딩 씬 코멘트 |
 | `timer` | 제한 시간(초) |
 | `clearRatio` | 클리어에 필요한 확보 비율(%) |
@@ -226,7 +264,7 @@ SFX:
 | `isBonusStage` | 보너스 스테이지 여부. 클리어 시 엔딩으로 간다. 해금 조건 계산에서는 제외된다. |
 | `bgm` | 스테이지 BGM. 메뉴·엔딩 BGM 은 스테이지에 속하지 않으므로 `SoundManager` 필드에 둔다. |
 
-`enemy`, `enemyCount`는 아직 사용하지 않는다.
+발자국(`70~72.footprint_*`) 은 로딩과 같은 "양발 → 왼발 큼 → 양발 → 오른발 큼" 순환을 쓰기 위해 Sprite Single 모드로 두었다. Multiple 이면 PNG 전체가 Sprite 로 존재하지 않는다.
 
 ## 저장 데이터
 
@@ -242,7 +280,6 @@ PlayerPrefs 를 쓴다.
 
 ## 아직 없는 것
 
-- 적. `CatEnemy`는 빈 클래스이고 `QixScene.SetEnemyCells`를 호출하는 곳이 없다. 현재 사망 조건은 자기 교차와 타이머만이다.
 - 데이터 초기화 확인 팝업. 지금은 버튼을 누르면 바로 삭제되고 타이틀이 다시 로드된다.
 - 점수는 넣지 않기로 했다.
 
