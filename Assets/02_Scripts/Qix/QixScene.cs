@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -267,20 +268,27 @@ namespace Qix
 
         // 거미줄 스프라이트는 칸보다 훨씬 커서 여러 칸을 덮는다. 중심 칸에서 trapCellRadius 안이면 덮인 것으로 본다.
         // 거미줄 수가 많아야 수십 개고 플레이어가 한 변으로 출발할 때만 부르므로 전수 비교로 충분하다.
+        //
+        // 첫 일치에서 멈추지 않고 가장 가까운 중심을 고른다. PlaceTrap 은 중심이 반지름 안에 겹치는 것만 막으므로
+        // 중심이 3~4칸 떨어진 거미줄은 덮는 범위가 겹칠 수 있는데, 그때 먼저 놓인 쪽을 돌려주면
+        // 플레이어 발밑 거미줄은 남고 멀리 있는 것이 사라진다.
         bool TryGetTrapOnEdge(Vector2Int cell, out Vector2Int trapCenter)
         {
+            int nearest = int.MaxValue;
+            trapCenter = default;
+
             foreach (var center in traps.Keys)
             {
-                if (Mathf.Abs(cell.x - center.x) <= trapCellRadius && 
-                    Mathf.Abs(cell.y - center.y) <= trapCellRadius)
+                // 덮는 범위가 정사각형이라 체비쇼프 거리로 안팎을 판정한다.
+                int distance = Mathf.Max(Mathf.Abs(cell.x - center.x), Mathf.Abs(cell.y - center.y));
+                if (distance <= trapCellRadius && distance < nearest)
                 {
+                    nearest = distance;
                     trapCenter = center;
-                    return true;
                 }
             }
 
-            trapCenter = default;
-            return false;
+            return nearest != int.MaxValue;
         }
 
         // 영역을 지키는 적의 칸만 모은다. 낙하형은 지나가는 중이라 세지 않는다.
