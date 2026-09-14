@@ -32,6 +32,7 @@ public class GameSetting : MonoBehaviour
     {
         resetButton.onClick.AddListener(() =>
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             settingPanel.SetActive(false);
             resetConfirmPanel.SetActive(true);
         });
@@ -43,6 +44,7 @@ public class GameSetting : MonoBehaviour
         });
         resetNo.onClick.AddListener(() =>
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             settingPanel.SetActive(true);
             resetConfirmPanel.SetActive(false);
         });
