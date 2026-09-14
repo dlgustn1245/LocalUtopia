@@ -23,7 +23,7 @@ namespace Qix
 
         public Player player;
         public GameObject trapPrefab;
-        public float trapSlowMultiplier = 0.5f;
+        public float trapSlowMultiplier = 0.25f;
 
         // 거미줄 하나가 덮는 칸 수(중심에서 상하좌우로). 스프라이트가 칸보다 훨씬 크므로 중심 칸만 느리게 하면
         // 눈에 보이는 거미줄 대부분이 아무 효과가 없다. 거미줄 그림 크기나 cellWorldSize 를 바꾸면 같이 맞춘다.
@@ -67,6 +67,9 @@ namespace Qix
         Coroutine blinkCoroutine;
         WaitForSeconds delay;
         int remainTime;
+
+        readonly float trapSlowDelay = 1.5f;
+        Coroutine trapSlowCoroutine;
 
         void Awake()
         {
@@ -204,7 +207,7 @@ namespace Qix
 
         void PlaceTrap(Vector2Int cell)
         {
-            if (grid.GetState(cell) != CellState.Empty || IsCellTrapped(cell))
+            if (grid.GetState(cell) != CellState.Empty || TryGetTrapOnEdge(cell, out _))
             {
                 return;
             }
@@ -240,35 +243,41 @@ namespace Qix
         }
 
         // 변의 양옆 칸 중 하나가 거미줄에 덮여 있으면 그 변을 지나는 동안 느려진다.
-        bool IsEdgeTrapped(Vector2Int from, Vector2Int to)
+        bool TryGetTrapCell(Vector2Int from, Vector2Int to, out Vector2Int trapCenter)
         {
             if (traps.Count == 0)
             {
+                trapCenter = default;
                 return false;
             }
 
             if (from.y == to.y)
             {
                 int x = Mathf.Min(from.x, to.x);
-                return IsCellTrapped(new Vector2Int(x, from.y - 1)) || IsCellTrapped(new Vector2Int(x, from.y));
+                return TryGetTrapOnEdge(new Vector2Int(x, from.y - 1), out trapCenter) || 
+                       TryGetTrapOnEdge(new Vector2Int(x, from.y), out trapCenter);
             }
 
             int y = Mathf.Min(from.y, to.y);
-            return IsCellTrapped(new Vector2Int(from.x - 1, y)) || IsCellTrapped(new Vector2Int(from.x, y));
+            return TryGetTrapOnEdge(new Vector2Int(from.x - 1, y), out trapCenter) || 
+                   TryGetTrapOnEdge(new Vector2Int(from.x, y), out trapCenter);
         }
 
         // 거미줄 스프라이트는 칸보다 훨씬 커서 여러 칸을 덮는다. 중심 칸에서 trapCellRadius 안이면 덮인 것으로 본다.
         // 거미줄 수가 많아야 수십 개고 플레이어가 한 변으로 출발할 때만 부르므로 전수 비교로 충분하다.
-        bool IsCellTrapped(Vector2Int cell)
+        bool TryGetTrapOnEdge(Vector2Int cell, out Vector2Int trapCenter)
         {
             foreach (var center in traps.Keys)
             {
-                if (Mathf.Abs(cell.x - center.x) <= trapCellRadius && Mathf.Abs(cell.y - center.y) <= trapCellRadius)
+                if (Mathf.Abs(cell.x - center.x) <= trapCellRadius && 
+                    Mathf.Abs(cell.y - center.y) <= trapCellRadius)
                 {
+                    trapCenter = center;
                     return true;
                 }
             }
 
+            trapCenter = default;
             return false;
         }
 
@@ -391,9 +400,32 @@ namespace Qix
                 return;
             }
 
-            player.speedMultiplier = IsEdgeTrapped(currentVertex, next) ? trapSlowMultiplier : 1f;
+            if (TryGetTrapCell(currentVertex, next, out var trapCell))
+            {
+                StepOnTrap(trapCell);
+            }
             targetVertex = next;
             isMoving = true;
+        }
+
+        void StepOnTrap(Vector2Int center)
+        {
+            Destroy(traps[center]);
+            traps.Remove(center);
+
+            if (trapSlowCoroutine != null)
+            {
+                StopCoroutine(trapSlowCoroutine);
+            }
+
+            trapSlowCoroutine = StartCoroutine(StepOnTrap());
+        }
+
+        IEnumerator StepOnTrap()
+        {
+            player.speedMultiplier = trapSlowMultiplier;
+            yield return new WaitForSeconds(trapSlowDelay);
+            player.speedMultiplier = 1.0f;
         }
 
         void ArriveAtVertex(Vector2Int vertex)
