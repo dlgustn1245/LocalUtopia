@@ -1,7 +1,8 @@
 using Qix;
 using UnityEngine;
 
-// 위에서 아래로 떨어진다. 벽에 막히거나 자기 칸이 확보되면 사라지고, 잠시 뒤 맨 윗줄 임의 열에서 다시 떨어진다.
+// 언제나 맵 맨 윗줄에서 아래로 떨어진다. 확보된 구역은 그냥 통과하고, 미확보 구역에 들어와야 벽에 막힌다.
+// 막히거나 바닥까지 내려가면 사라졌다가 잠시 뒤 다시 맨 위에서 떨어진다.
 // 필드를 계속 가로지르는 존재라 영역을 지키지 않는다. 프리팹에서 keepRegion 을 꺼 둔다. 돈이 쓴다.
 public class FallingEnemy : QixEnemy
 {
@@ -30,10 +31,40 @@ public class FallingEnemy : QixEnemy
             return;
         }
 
-        if (grid.GetState(cell) == CellState.Claimed || MoveBy(Vector2.down * (moveSpeed * Time.deltaTime)))
+        float step = moveSpeed * Time.deltaTime;
+
+        // 확보된 칸을 지나는 동안은 아직 "들어오는 중" 이라 벽 판정 없이 내려오기만 한다.
+        // 위쪽이 확보돼 있어도 항상 화면 맨 위에서 떨어져 들어오게 하려면 이 구간이 필요하다.
+        // 확보·미확보 경계는 Boundary 라서 보통 이동으로는 통과할 수 없다.
+        if (grid.GetState(cell) == CellState.Claimed)
+        {
+            Descend(step);
+            return;
+        }
+
+        // 미확보 구역에 들어왔다. 여기서부터는 벽에 막히고 궤적도 밟는다.
+        if (MoveBy(Vector2.down * step))
         {
             Vanish();
         }
+    }
+
+    // 확보 구역 통과용 이동. 변을 보지 않고 좌표만 내리므로 칸도 직접 갱신한다.
+    void Descend(float step)
+    {
+        var position = (Vector2)transform.position;
+        position.y -= step;
+        transform.position = new Vector3(position.x, position.y, transform.position.z);
+
+        var next = grid.WorldToCell(position);
+        if (!grid.IsInBounds(next))
+        {
+            // 바닥까지 확보돼 있어 미확보 구역을 만나지 못했다.
+            Vanish();
+            return;
+        }
+
+        cell = next;
     }
 
     // SetActive(false) 로 숨기면 Update 가 멈춰 재등장 타이머를 스스로 셀 수 없다. 렌더러만 끈다.
@@ -44,26 +75,12 @@ public class FallingEnemy : QixEnemy
         respawnTimer = respawnDelay;
     }
 
-    // 임의 열에서 가장 위의 빈 칸을 찾아 다시 떨어진다.
-    // 맨 윗줄만 보면 플레이어가 윗부분을 확보한 뒤로는 영원히 재등장하지 못한다. 남은 영역의 천장에서 나오게 한다.
+    // 확보 여부를 보지 않고 언제나 맵 맨 윗줄에서 떨어진다. 떨어지는 것은 항상 화면 위에서 들어와야 한다.
+    // 그 자리가 확보된 칸이면 Descend 가 미확보 구역까지 통과시켜 준다.
     void TryRespawn()
     {
-        for (int i = 0; i < 16; i++)
-        {
-            int x = Random.Range(0, grid.Columns);
-            for (int y = grid.Rows - 1; y >= 0; y--)
-            {
-                var spawnCell = new Vector2Int(x, y);
-                if (grid.GetState(spawnCell) == CellState.Empty)
-                {
-                    Place(spawnCell);
-                    spriteRenderer.enabled = true;
-                    isFalling = true;
-                    return;
-                }
-            }
-        }
-
-        respawnTimer = respawnDelay;
+        Place(new Vector2Int(Random.Range(0, grid.Columns), grid.Rows - 1));
+        spriteRenderer.enabled = true;
+        isFalling = true;
     }
 }

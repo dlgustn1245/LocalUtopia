@@ -173,10 +173,12 @@ Assets/
 | 클래스 | 행동 | `keepRegion` | 스테이지 |
 |---|---|---|---|
 | `GlideEnemy` | `minRest~maxRest` 쉬고 빈 칸 하나(`QixGrid.TryGetRandomEmptyCell`)를 골라 직선으로 간다. 도착하거나 막히면 다시 쉰다. | 켬 | Dani(발자국), JaeJae(고양이), Namu(구름), Bonus(경비 3인) |
-| `FallingEnemy` | 아래로 떨어진다. 막히거나 자기 칸이 `Claimed` 면 렌더러를 끄고 `respawnDelay` 뒤 임의 열의 **가장 위 빈 칸**에서 다시 떨어진다. 맨 윗줄만 보면 윗부분을 확보한 뒤 영원히 안 나온다. `SetActive(false)` 는 Update 가 멈춰 타이머를 못 세니 쓰지 않는다. | 끔 | Sonqo(돈) |
+| `FallingEnemy` | **언제나 맵 맨 윗줄의 임의 열**에서 떨어진다. 확보 여부를 보지 않는다. 벽에 막히거나 바닥으로 빠지면 렌더러를 끄고 `respawnDelay` 뒤 다시 맨 위에서 떨어진다. `SetActive(false)` 는 Update 가 멈춰 타이머를 못 세니 쓰지 않는다. | 끔 | Sonqo(돈) |
 | `TrapperEnemy` | 랜덤 각도로 직진하다 막힌 축만 뒤집어 튕긴다. `trapInterval` 마다 `onPlaceTrap(cell)` 을 부른다. | 켬 | Leeguheok(거미) |
 
 `keepRegion` 은 영역 확보 때 이 적이 선 영역을 남길지다. 낙하형은 필드를 계속 가로지르므로 확보 순간 어디 있는지가 운이라 끈다. 그러면 Sonqo 는 적 칸이 비어 "가장 넓은 영역만 남긴다" 분기로 떨어지는데 그게 맞는 동작이다.
+
+**낙하형의 두 단계**: 확보된 칸에 있는 동안은 아직 "들어오는 중" 이라 `Descend` 가 변을 보지 않고 좌표만 내리며 칸을 직접 갱신한다. 미확보 칸에 닿으면 그때부터 `MoveBy` 로 넘어가 벽에 막히고 궤적도 밟는다. 이 단계가 필요한 이유는 둘이다. 확보·미확보 경계가 `Boundary` 라 보통 이동으로는 통과할 수 없고, 확보된 칸에서 바로 사라지게 하면 위쪽을 덮은 뒤로 등장 자체가 막힌다. 등장 위치를 "남은 영역의 천장" 으로 낮추는 방법도 있지만, 그러면 확보 모양에 따라 화면 한가운데서 튀어나와 떨어지는 것처럼 보이지 않는다.
 
 **스폰**: `QixScene.SpawnEnemies` 가 `StageData.enemies`(`EnemyData[]`) 의 `prefab` 을 `count` 만큼 `Instantiate` 하고 (`EnemyData.prefab` 은 `GameObject` 가 아니라 `QixEnemy` 타입이다. 인스펙터가 적 스크립트 없는 프리팹을 아예 받지 않아 스폰 도중 터지는 대신 꽂는 자리에서 막힌다) `Init(grid, frames, 콜백)` → `Place(빈 칸)` 한다. 프리팹은 그림별로 하나씩(`Prefab/Enemy/`)이고 행동 수치(속도·주기)는 프리팹, 마릿수와 프레임은 `EnemyData` 에 둔다. 보너스처럼 인스턴스마다 그림이 다르면 `EnemyData` 를 여러 줄 쓴다. `Init` 은 생성자 대신이다. `Instantiate` 바로 다음 줄에서 부르면 `Awake` 는 이미 끝났고 첫 `Update` 는 아직이라 순서가 보장된다. 그래서 자식의 `Awake` 는 `grid` 를 쓰지 않는다.
 
