@@ -51,6 +51,7 @@ public class GameSetting : MonoBehaviour
         
         closeButton.onClick.AddListener(() =>
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             gameObject.SetActive(false);
         });
         

@@ -17,6 +17,7 @@ public class CreditScene : MonoBehaviour
     {
         toTitle.onClick.AddListener(() =>
         {
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             SceneLoader.Load(SceneNames.Title);
         });
 
