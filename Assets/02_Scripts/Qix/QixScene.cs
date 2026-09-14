@@ -14,9 +14,17 @@ namespace Qix
     public class QixScene : MonoBehaviour
     {
         readonly List<Vector2Int> enemyCells = new();
+        readonly List<QixEnemy> enemies = new();
         readonly QixCaptureService captureService = new();
-        
+
+        // 거미줄. 칸 하나에 하나. 거미(TrapperEnemy)는 놓을 칸만 알려 주고 생성·감속·제거는 여기서 한다.
+        readonly Dictionary<Vector2Int, GameObject> traps = new();
+        readonly List<Vector2Int> trapRemoveBuffer = new();
+
         public Player player;
+        public GameObject trapPrefab;
+        public float trapSlowMultiplier = 0.5f;
+        public float invincibleDuration = 2f;
         public float cellWorldSize;
         public QixGridRenderer gridRenderer;
 
@@ -49,6 +57,7 @@ namespace Qix
 
         Coroutine timerCoroutine;
         WaitForSeconds delay;
+        WaitForSeconds invincibleDelay;
         int remainTime;
 
         void Awake()
@@ -100,6 +109,128 @@ namespace Qix
             {
                 Instantiate(deathCountIcon, deathCountParent);
             }
+
+            SpawnEnemies();
+        }
+
+        void SpawnEnemies()
+        {
+            var spawns = stage.enemies;
+            if (spawns == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < spawns.Length; i++)
+            {
+                var spawn = spawns[i];
+                for (int j = 0; j < spawn.count; j++)
+                {
+                    var enemy = Instantiate(spawn.prefab, transform).GetComponent<QixEnemy>();
+                    enemy.Init(grid, spawn.frames, OnEnemyTouchedTrail);
+
+                    // 시작 시점엔 모든 칸이 Empty 라 실패하지 않는다. 실패해도 (0,0) 이라 안전하다.
+                    grid.TryGetRandomEmptyCell(out var cell);
+                    enemy.Place(cell);
+
+                    if (enemy is TrapperEnemy trapper)
+                    {
+                        trapper.onPlaceTrap = PlaceTrap;
+                    }
+
+                    enemies.Add(enemy);
+                }
+            }
+        }
+
+        // 적이 그리는 중인 궤적을 밟았다. 무적이면 무시하고, 살아남았으면 잠시 무적을 준다.
+        void OnEnemyTouchedTrail()
+        {
+            if (player.isInvincible)
+            {
+                return;
+            }
+
+            if (HandlePlayerDeath())
+            {
+                StartCoroutine(RunInvincible());
+            }
+        }
+
+        IEnumerator RunInvincible()
+        {
+            invincibleDelay ??= new WaitForSeconds(invincibleDuration);
+            player.isInvincible = true;
+            yield return invincibleDelay;
+            player.isInvincible = false;
+        }
+
+        void PlaceTrap(Vector2Int cell)
+        {
+            if (traps.ContainsKey(cell) || grid.GetState(cell) != CellState.Empty)
+            {
+                return;
+            }
+
+            var trap = Instantiate(trapPrefab, transform);
+            var world = grid.CellToWorld(cell);
+            trap.transform.position = new Vector3(world.x, world.y, trap.transform.position.z);
+            traps.Add(cell, trap);
+        }
+
+        // 확보된 칸 위의 거미줄을 지운다. 열거 중에 Remove 할 수 없어 키를 모아 두고 지운다.
+        void RemoveClaimedTraps()
+        {
+            if (traps.Count == 0)
+            {
+                return;
+            }
+
+            trapRemoveBuffer.Clear();
+            foreach (var pair in traps)
+            {
+                if (grid.GetState(pair.Key) == CellState.Claimed)
+                {
+                    Destroy(pair.Value);
+                    trapRemoveBuffer.Add(pair.Key);
+                }
+            }
+
+            for (int i = 0; i < trapRemoveBuffer.Count; i++)
+            {
+                traps.Remove(trapRemoveBuffer[i]);
+            }
+        }
+
+        // 변의 양옆 칸 중 하나에 거미줄이 있으면 그 변을 지나는 동안 느려진다.
+        bool IsEdgeTrapped(Vector2Int from, Vector2Int to)
+        {
+            if (traps.Count == 0)
+            {
+                return false;
+            }
+
+            if (from.y == to.y)
+            {
+                int x = Mathf.Min(from.x, to.x);
+                return traps.ContainsKey(new Vector2Int(x, from.y - 1)) || traps.ContainsKey(new Vector2Int(x, from.y));
+            }
+
+            int y = Mathf.Min(from.y, to.y);
+            return traps.ContainsKey(new Vector2Int(from.x - 1, y)) || traps.ContainsKey(new Vector2Int(from.x, y));
+        }
+
+        // 영역을 지키는 적의 칸만 모은다. 낙하형은 지나가는 중이라 세지 않는다.
+        void CollectEnemyCells()
+        {
+            enemyCells.Clear();
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                if (enemies[i].keepRegion)
+                {
+                    enemyCells.Add(enemies[i].cell);
+                }
+            }
         }
 
         void SetPlayerFirstVertex()
@@ -150,15 +281,6 @@ namespace Qix
             }
 
             TryStartNextMove();
-        }
-
-        public void SetEnemyCells(IReadOnlyList<Vector2Int> cells)
-        {
-            enemyCells.Clear();
-            for (int i = 0; i < cells.Count; i++)
-            {
-                enemyCells.Add(cells[i]);
-            }
         }
 
         void BuildGrid()
@@ -216,6 +338,7 @@ namespace Qix
                 return;
             }
 
+            player.speedMultiplier = IsEdgeTrapped(currentVertex, next) ? trapSlowMultiplier : 1f;
             targetVertex = next;
             isMoving = true;
         }
@@ -254,7 +377,9 @@ namespace Qix
             player.SetSafeSprite();
 
             // 궤적을 선으로 승격한 뒤에 호출해야 flood fill 이 새 선을 벽으로 인식한다.
+            CollectEnemyCells();
             int capturedCells = captureService.Capture(grid, enemyCells);
+            RemoveClaimedTraps();
             RefreshRenderer();
 
             // 적 영역을 남기는 모드에서는 궤적 양쪽이 모두 확보되어 현재 꼭짓점의 선이 전부 지워질 수 있다.
@@ -289,6 +414,11 @@ namespace Qix
             RefreshRenderer();
             StopCoroutine(timerCoroutine);
             GameManager.Instance.StageClear();
+            
+            foreach (var enemy in enemies)
+            {
+                enemy.enabled = false;
+            }
 
             ratioSlider.value = 1.0f;
             percentageText.text = "100%";
@@ -302,7 +432,8 @@ namespace Qix
             }
         }
 
-        void HandlePlayerDeath(bool force = false)
+        // 살아남아 부활했으면 true, 목숨을 다 써서 실패 팝업이 떴으면 false.
+        bool HandlePlayerDeath(bool force = false)
         {
             SetTrailEdges(EdgeState.None);
 
@@ -319,11 +450,17 @@ namespace Qix
                 failPopup.gameObject.SetActive(true);
                 SetPlayerFirstVertex();
                 RefreshRenderer();
-                return;
+                foreach (var enemy in enemies)
+                {
+                    enemy.enabled = false;
+                }
+                return false;
             }
 
             MovePlayerToVertex(respawnVertex);
             RefreshRenderer();
+            StartCoroutine(player.PlayerHitBlink());
+            return true;
         }
 
         bool CheckPlayerDead()

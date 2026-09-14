@@ -87,6 +87,23 @@ namespace Qix
             cells[cell.x, cell.y] = state;
         }
 
+        // 무작위 Empty 칸 하나. 적 스폰과 미끄러짐 목표에 쓴다.
+        // ponytail: 전수 조사 대신 16회 시도. 확보율이 높은 후반에 실패하면 false 를 돌려주고 호출자가 한 주기 더 쉰다.
+        public bool TryGetRandomEmptyCell(out Vector2Int cell)
+        {
+            for (int i = 0; i < 16; i++)
+            {
+                cell = new Vector2Int(UnityEngine.Random.Range(0, Columns), UnityEngine.Random.Range(0, Rows));
+                if (cells[cell.x, cell.y] == CellState.Empty)
+                {
+                    return true;
+                }
+            }
+
+            cell = default;
+            return false;
+        }
+
         public void ClaimAllArea()
         {
             for (int i = 0; i < Columns; i++)
@@ -107,9 +124,9 @@ namespace Qix
         public Vector2Int WorldToCell(Vector2 worldPosition)
         {
             var local = worldPosition - Origin;
-            int x = Mathf.Clamp(Mathf.FloorToInt(local.x / CellSize.x), 0, Columns - 1);
-            int y = Mathf.Clamp(Mathf.FloorToInt(local.y / CellSize.y), 0, Rows - 1);
-            return new Vector2Int(x, y);
+            return new Vector2Int(
+                Mathf.FloorToInt(local.x / CellSize.x), 
+                Mathf.FloorToInt(local.y / CellSize.y));
         }
 
         // 칸의 중심 월드 좌표를 반환한다.
@@ -194,16 +211,21 @@ namespace Qix
             int y = Mathf.Min(from.y, to.y);
             return IsCellEmpty(from.x - 1, y) && IsCellEmpty(from.x, y);
         }
+        
+        public EdgeState GetEdgeBetweenCells(Vector2Int a, Vector2Int b)
+        {
+            if (a.y == b.y)
+            {
+                return verticalEdges[Mathf.Max(a.x, b.x), a.y];
+            }
+
+            return horizontalEdges[a.x, Mathf.Max(a.y, b.y)];
+        }
 
         // 인접한 두 칸 사이를 선이 막고 있는지. flood fill 의 벽 판정에 쓴다.
         public bool IsBoundaryBetweenCells(Vector2Int a, Vector2Int b)
         {
-            if (a.y == b.y)
-            {
-                return verticalEdges[Mathf.Max(a.x, b.x), a.y] == EdgeState.Boundary;
-            }
-
-            return horizontalEdges[a.x, Mathf.Max(a.y, b.y)] == EdgeState.Boundary;
+            return GetEdgeBetweenCells(a, b) == EdgeState.Boundary;
         }
 
         // 양옆 칸이 모두 확보된 변을 지운다. 두 미확보 영역을 갈랐던 옛 궤적이 양쪽 다 확보된 뒤에도 남아

@@ -25,3 +25,9 @@ MonoBehaviour:
   deathCount: 1
   isBonusStage: 0
   bgm: {fileID: 8300000, guid: 547e752fed71e4e4e8f479677b4d3717, type: 3}
+  enemies:
+  - prefab: {fileID: 1020886655766616232, guid: 3bb0a3041e1840858529f86159f6f840, type: 3}
+    count: 2
+    frames:
+    - {fileID: 21300000, guid: 6ba27d905d65c664b8417ccf5489da9b, type: 3}
+    - {fileID: 21300000, guid: d84cf4d2cb34a2b4da5287506b85c3b5, type: 3}

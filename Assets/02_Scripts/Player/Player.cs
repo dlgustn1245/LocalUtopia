@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,8 +14,14 @@ public class Player : MonoBehaviour
     public Sprite hitSprite;
 
     public SpriteRenderer spriteRenderer;
-    
+
+    public float speedMultiplier = 1f;
     public float moveSpeed = 5f;
+
+    public bool isInvincible;
+
+    readonly WaitForSeconds blinkDelay = new WaitForSeconds(0.08f);
+    readonly int blinkCount = 12;
 
     public Vector2Int InputDirection { get; private set; }
 
@@ -57,9 +64,23 @@ public class Player : MonoBehaviour
         spriteRenderer.sprite = drawSprite;
     }
 
-    public void SetHitSprite()
+    void SetHitSprite()
     {
         spriteRenderer.sprite = hitSprite;
+    }
+
+    public IEnumerator PlayerHitBlink()
+    {
+        SetHitSprite();
+
+        for (int i = 0; i < blinkCount; i++)
+        {
+            spriteRenderer.enabled = false;
+            yield return blinkDelay;
+            spriteRenderer.enabled = true;
+            yield return blinkDelay;
+        }
+        SetSafeSprite();
     }
 
     // 목표 좌표를 향해 한 프레임만큼 이동한다. 도달했으면 true.
@@ -71,7 +92,7 @@ public class Player : MonoBehaviour
             return true;
         }
 
-        var next = Vector2.MoveTowards(current, target, moveSpeed * Time.deltaTime);
+        var next = Vector2.MoveTowards(current, target, (moveSpeed * speedMultiplier) * Time.deltaTime);
         transform.position = new Vector3(next.x, next.y, transform.position.z);
 
         return next == target;
