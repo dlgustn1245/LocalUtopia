@@ -17,14 +17,22 @@ namespace Qix
         readonly List<QixEnemy> enemies = new();
         readonly QixCaptureService captureService = new();
 
-        // 거미줄. 칸 하나에 하나. 거미(TrapperEnemy)는 놓을 칸만 알려 주고 생성·감속·제거는 여기서 한다.
+        // 거미줄. 키는 스프라이트가 놓인 중심 칸. 거미(TrapperEnemy)는 놓을 칸만 알려 주고 생성·감속·제거는 여기서 한다.
         readonly Dictionary<Vector2Int, GameObject> traps = new();
         readonly List<Vector2Int> trapRemoveBuffer = new();
 
         public Player player;
         public GameObject trapPrefab;
         public float trapSlowMultiplier = 0.5f;
+
+        // 거미줄 하나가 덮는 칸 수(중심에서 상하좌우로). 스프라이트가 칸보다 훨씬 크므로 중심 칸만 느리게 하면
+        // 눈에 보이는 거미줄 대부분이 아무 효과가 없다. 거미줄 그림 크기나 cellWorldSize 를 바꾸면 같이 맞춘다.
+        public int trapCellRadius = 2;
+
         public float invincibleDuration = 2f;
+
+        // 무적이 없는 사망(자기 교차) 연출 길이. 적 접촉 때는 무적 시간만큼 깜빡인다.
+        public float deathBlinkDuration = 0.6f;
         public float cellWorldSize;
         public QixGridRenderer gridRenderer;
 
@@ -58,7 +66,6 @@ namespace Qix
         Coroutine timerCoroutine;
         Coroutine blinkCoroutine;
         WaitForSeconds delay;
-        WaitForSeconds invincibleDelay;
         int remainTime;
 
         void Awake()
@@ -125,9 +132,15 @@ namespace Qix
             for (int i = 0; i < spawns.Length; i++)
             {
                 var spawn = spawns[i];
+                if (spawn.prefab == null)
+                {
+                    Debug.LogError($"{stage.name}: enemies[{i}].prefab 이 비어 있다.", stage);
+                    continue;
+                }
+
                 for (int j = 0; j < spawn.count; j++)
                 {
-                    var enemy = Instantiate(spawn.prefab, transform).GetComponent<QixEnemy>();
+                    var enemy = Instantiate(spawn.prefab, transform);
                     enemy.Init(grid, spawn.frames, OnEnemyHit);
 
                     // 시작 시점엔 모든 칸이 Empty 라 실패하지 않는다. 실패해도 (0,0) 이라 안전하다.
@@ -152,10 +165,7 @@ namespace Qix
                 return;
             }
 
-            if (HandlePlayerDeath())
-            {
-                StartCoroutine(RunInvincible());
-            }
+            HandlePlayerDeath(false, invincibleDuration);
         }
 
         // 적 본체와의 접촉. 선을 그리는 중에만 판정한다. 테두리 위는 안전지대다.
@@ -184,17 +194,17 @@ namespace Qix
             }
         }
 
-        IEnumerator RunInvincible()
+        // StartCoroutine 은 첫 yield 까지 동기 실행되므로, 같은 프레임에 다른 적이 또 닿아도 여기서 막힌다.
+        IEnumerator RunInvincible(float duration)
         {
-            invincibleDelay ??= new WaitForSeconds(invincibleDuration);
             player.isInvincible = true;
-            yield return invincibleDelay;
+            yield return new WaitForSeconds(duration);
             player.isInvincible = false;
         }
 
         void PlaceTrap(Vector2Int cell)
         {
-            if (traps.ContainsKey(cell) || grid.GetState(cell) != CellState.Empty)
+            if (grid.GetState(cell) != CellState.Empty || IsCellTrapped(cell))
             {
                 return;
             }
@@ -229,7 +239,7 @@ namespace Qix
             }
         }
 
-        // 변의 양옆 칸 중 하나에 거미줄이 있으면 그 변을 지나는 동안 느려진다.
+        // 변의 양옆 칸 중 하나가 거미줄에 덮여 있으면 그 변을 지나는 동안 느려진다.
         bool IsEdgeTrapped(Vector2Int from, Vector2Int to)
         {
             if (traps.Count == 0)
@@ -240,11 +250,26 @@ namespace Qix
             if (from.y == to.y)
             {
                 int x = Mathf.Min(from.x, to.x);
-                return traps.ContainsKey(new Vector2Int(x, from.y - 1)) || traps.ContainsKey(new Vector2Int(x, from.y));
+                return IsCellTrapped(new Vector2Int(x, from.y - 1)) || IsCellTrapped(new Vector2Int(x, from.y));
             }
 
             int y = Mathf.Min(from.y, to.y);
-            return traps.ContainsKey(new Vector2Int(from.x - 1, y)) || traps.ContainsKey(new Vector2Int(from.x, y));
+            return IsCellTrapped(new Vector2Int(from.x - 1, y)) || IsCellTrapped(new Vector2Int(from.x, y));
+        }
+
+        // 거미줄 스프라이트는 칸보다 훨씬 커서 여러 칸을 덮는다. 중심 칸에서 trapCellRadius 안이면 덮인 것으로 본다.
+        // 거미줄 수가 많아야 수십 개고 플레이어가 한 변으로 출발할 때만 부르므로 전수 비교로 충분하다.
+        bool IsCellTrapped(Vector2Int cell)
+        {
+            foreach (var center in traps.Keys)
+            {
+                if (Mathf.Abs(cell.x - center.x) <= trapCellRadius && Mathf.Abs(cell.y - center.y) <= trapCellRadius)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // 영역을 지키는 적의 칸만 모은다. 낙하형은 지나가는 중이라 세지 않는다.
@@ -462,7 +487,8 @@ namespace Qix
         }
 
         // 살아남아 부활했으면 true, 목숨을 다 써서 실패 팝업이 떴으면 false.
-        bool HandlePlayerDeath(bool force = false)
+        // invincibleAfter 가 0보다 크면 그 시간 동안 무적이 되고 깜빡임도 같은 길이로 맞춘다.
+        bool HandlePlayerDeath(bool force = false, float invincibleAfter = 0f)
         {
             SetTrailEdges(EdgeState.None);
 
@@ -494,7 +520,14 @@ namespace Qix
             {
                 StopCoroutine(blinkCoroutine);
             }
-            blinkCoroutine = StartCoroutine(player.PlayerHitBlink());
+            blinkCoroutine = StartCoroutine(player.PlayerHitBlink(
+                invincibleAfter > 0f ? invincibleAfter : deathBlinkDuration));
+
+            if (invincibleAfter > 0f)
+            {
+                StartCoroutine(RunInvincible(invincibleAfter));
+            }
+
             return true;
         }
 

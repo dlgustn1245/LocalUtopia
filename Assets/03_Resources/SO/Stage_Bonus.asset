@@ -25,15 +25,15 @@ MonoBehaviour:
   isBonusStage: 1
   bgm: {fileID: 8300000, guid: 6523d8f0c2b082a418c773a81d2d6a24, type: 3}
   enemies:
-  - prefab: {fileID: 2705132032645165959, guid: bf094f84bab0412188e06ee4042fb13d, type: 3}
+  - prefab: {fileID: 3851002338185027793, guid: bf094f84bab0412188e06ee4042fb13d, type: 3}
     count: 1
     frames:
     - {fileID: 21300000, guid: 6b07e1598477a1543a8fdfc53dd92b1d, type: 3}
-  - prefab: {fileID: 4188747527977466240, guid: 2b254c525a0f4374bcd41c10e254d646, type: 3}
+  - prefab: {fileID: 1421827951483385051, guid: 2b254c525a0f4374bcd41c10e254d646, type: 3}
     count: 1
     frames:
     - {fileID: 21300000, guid: aef3ae851ff707e41ae3d263c528b9c1, type: 3}
-  - prefab: {fileID: 3519323369415942392, guid: c8b5cbffe9bc4c1faf4d1e581f490fe4, type: 3}
+  - prefab: {fileID: 2489356984700436680, guid: c8b5cbffe9bc4c1faf4d1e581f490fe4, type: 3}
     count: 1
     frames:
     - {fileID: 21300000, guid: 1cb5746aecce7c34eaf4b0f802f1cbe0, type: 3}

@@ -20,8 +20,9 @@ public class Player : MonoBehaviour
 
     public bool isInvincible;
 
-    readonly WaitForSeconds blinkDelay = new WaitForSeconds(0.08f);
-    readonly int blinkCount = 12;
+    const float BlinkInterval = 0.08f;
+
+    readonly WaitForSeconds blinkDelay = new WaitForSeconds(BlinkInterval);
 
     public Vector2Int InputDirection { get; private set; }
 
@@ -74,11 +75,14 @@ public class Player : MonoBehaviour
         spriteRenderer.sprite = hitSprite;
     }
 
-    public IEnumerator PlayerHitBlink()
+    // 피격 연출. 깜빡임이 무적 상태의 유일한 표시라 길이를 호출자가 정하게 둔다.
+    // 여기서 횟수를 직접 들고 있으면 무적 시간을 늘렸을 때 멀쩡히 보이면서 무적인 구간이 생긴다.
+    public IEnumerator PlayerHitBlink(float duration)
     {
         SetHitSprite();
 
-        for (int i = 0; i < blinkCount; i++)
+        int count = Mathf.Max(1, Mathf.RoundToInt(duration / (BlinkInterval * 2f)));
+        for (int i = 0; i < count; i++)
         {
             spriteRenderer.enabled = false;
             yield return blinkDelay;

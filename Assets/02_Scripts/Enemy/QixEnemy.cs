@@ -54,12 +54,26 @@ public abstract class QixEnemy : MonoBehaviour
     // 한 축이라도 벽에 막혔으면 true.
     protected bool MoveBy(Vector2 delta)
     {
-        // 한 프레임에 두 칸 이상 건너뛰면 사이의 변을 놓쳐 벽을 통과한다. 축마다 한 칸으로 끊는다.
-        delta.x = Mathf.Clamp(delta.x, -grid.CellSize.x, grid.CellSize.x);
-        delta.y = Mathf.Clamp(delta.y, -grid.CellSize.y, grid.CellSize.y);
+        // 한 번에 두 칸 이상 건너뛰면 사이의 변을 놓쳐 벽을 통과한다. 그렇다고 잘라내면 프레임이 떨어질 때
+        // 이동량이 통째로 버려져 적이 느려지므로, 한 칸 이하로 쪼개서 여러 번 밟는다.
+        // 상한은 말도 안 되는 moveSpeed 가 한 프레임을 통째로 잡아먹지 않게 하는 안전장치다.
+        int steps = Mathf.Clamp(Mathf.Max(
+            Mathf.CeilToInt(Mathf.Abs(delta.x) / grid.CellSize.x),
+            Mathf.CeilToInt(Mathf.Abs(delta.y) / grid.CellSize.y)), 1, 64);
 
-        bool blocked = TryStep(new Vector2(delta.x, 0f));
-        blocked |= TryStep(new Vector2(0f, delta.y));
+        // 상한에 걸렸을 때 남는 이동량은 버린다. 한 조각이 한 칸을 넘으면 GetEdgeBetweenCells 의
+        // "두 칸은 인접하다" 전제가 깨져 배열 밖을 읽는다.
+        var stepDelta = delta / steps;
+        stepDelta.x = Mathf.Clamp(stepDelta.x, -grid.CellSize.x, grid.CellSize.x);
+        stepDelta.y = Mathf.Clamp(stepDelta.y, -grid.CellSize.y, grid.CellSize.y);
+
+        bool blocked = false;
+
+        for (int i = 0; i < steps; i++)
+        {
+            blocked |= TryStep(new Vector2(stepDelta.x, 0f));
+            blocked |= TryStep(new Vector2(0f, stepDelta.y));
+        }
 
         return blocked;
     }
