@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -291,6 +290,25 @@ namespace Qix
             return nearest != int.MaxValue;
         }
 
+        // 확보된 쪽에 갇힌 적을 치운다. 확보는 영역 하나만 남기므로 그 밖에 있던 적은 붙잡힌 것이다.
+        // 낙하형(keepRegion 꺼짐)은 원래 확보 구역을 통과해 다니므로 대상이 아니다.
+        void RemoveCapturedEnemies()
+        {
+            for (int i = enemies.Count - 1; i >= 0; i--)
+            {
+                var enemy = enemies[i];
+                if (!enemy.keepRegion || grid.GetState(enemy.cell) != CellState.Claimed)
+                {
+                    continue;
+                }
+
+                // Destroy 는 프레임 끝에 실행되므로, 이번 프레임에 한 번 더 움직이지 않게 먼저 끈다.
+                enemy.gameObject.SetActive(false);
+                Destroy(enemy.gameObject);
+                enemies.RemoveAt(i);
+            }
+        }
+
         // 영역을 지키는 적의 칸만 모은다. 낙하형은 지나가는 중이라 세지 않는다.
         void CollectEnemyCells()
         {
@@ -477,6 +495,7 @@ namespace Qix
             // 궤적을 선으로 승격한 뒤에 호출해야 flood fill 이 새 선을 벽으로 인식한다.
             CollectEnemyCells();
             int capturedCells = captureService.Capture(grid, enemyCells);
+            RemoveCapturedEnemies();
             RemoveClaimedTraps();
             RefreshRenderer();
 

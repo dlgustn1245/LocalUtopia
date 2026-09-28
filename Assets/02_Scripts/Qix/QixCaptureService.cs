@@ -5,8 +5,8 @@ using UnityEngine;
 namespace Qix
 {
     // Qix 핵심 알고리즘: 미확보(Empty) 영역을 선(EdgeState.Boundary)을 벽 삼아 flood fill 로 나눈 뒤,
-    // 적이 있는 영역은 남기고 나머지를 확보(Claimed) 처리한다.
-    // 적이 하나도 없을 때는(테스트/초기 상태) 가장 넓은 영역을 플레이 필드로 남기고 나머지만 확보한다.
+    // 영역 하나만 남기고 나머지를 확보(Claimed) 처리한다. 남는 것은 적이 있는 영역 중 가장 넓은 곳이고,
+    // 적이 하나도 없으면(낙하형만 있는 스테이지, 테스트) 전체에서 가장 넓은 곳이다.
     //
     // 벽 판정을 칸이 아니라 변으로 하는 것이 핵심이다. 궤적은 칸을 차지하지 않고 칸 사이를 지나므로,
     // 칸만 봐서는 새로 그린 선이 영역을 갈랐다는 사실을 알 수 없다.
@@ -27,9 +27,9 @@ namespace Qix
 
         // 그리드 크기가 그대로면 계속 재사용하는 작업용 버퍼.
         readonly List<int> regionSizes = new();
-        readonly HashSet<int> regionsToKeep = new();
         readonly Queue<Vector2Int> floodQueue = new();
         int[,] regionIds;
+        int keptRegion;
 
         // 새로 확보된 칸 수를 반환한다.
         public int Capture(QixGrid grid, IReadOnlyList<Vector2Int> enemyCells)
@@ -41,7 +41,7 @@ namespace Qix
                 return 0;
             }
 
-            SelectRegionsToKeep(grid, enemyCells);
+            keptRegion = SelectRegionToKeep(grid, enemyCells);
             int claimedCount = ClaimUnkeptRegions(grid);
 
             // 새로 확보된 칸 사이에 남은 옛 선을 정리한다. 궤적은 항상 남긴 영역과 맞닿으므로 여기서 지워지지 않는다.
@@ -128,10 +128,14 @@ namespace Qix
             return size;
         }
 
-        // 적이 있는 영역이 하나라도 있으면 그 영역들을 모두 남기고, 하나도 없으면 가장 넓은 영역만 남긴다.
-        void SelectRegionsToKeep(QixGrid grid, IReadOnlyList<Vector2Int> enemyCells)
+        // 적이 있는 영역 중 가장 넓은 한 곳을 고른다. 적이 없으면 전체에서 가장 넓은 곳.
+        //
+        // 적이 있는 영역을 전부 남기면 적 둘을 가르는 선은 아무것도 확보하지 못하고 벽만 남아,
+        // 적이 여럿인 스테이지에서 적을 가두는 전략이 통하지 않는다. 한 곳만 남기면 적을 좁은 곳에 가둘수록
+        // 넓게 따낸다. 확보된 쪽에 갇힌 적은 QixScene 이 치운다.
+        int SelectRegionToKeep(QixGrid grid, IReadOnlyList<Vector2Int> enemyCells)
         {
-            regionsToKeep.Clear();
+            int keep = NoRegion;
 
             if (enemyCells != null)
             {
@@ -144,28 +148,27 @@ namespace Qix
                     }
 
                     int regionId = regionIds[enemy.x, enemy.y];
-                    if (regionId != NoRegion)
+                    if (regionId != NoRegion && (keep == NoRegion || regionSizes[regionId] > regionSizes[keep]))
                     {
-                        regionsToKeep.Add(regionId);
+                        keep = regionId;
                     }
                 }
             }
 
-            if (regionsToKeep.Count > 0)
+            if (keep != NoRegion)
             {
-                return;
+                return keep;
             }
 
-            int largestRegionId = NoRegion;
             for (int regionId = 1; regionId < regionSizes.Count; regionId++)
             {
-                if (largestRegionId == NoRegion || regionSizes[regionId] > regionSizes[largestRegionId])
+                if (keep == NoRegion || regionSizes[regionId] > regionSizes[keep])
                 {
-                    largestRegionId = regionId;
+                    keep = regionId;
                 }
             }
 
-            regionsToKeep.Add(largestRegionId);
+            return keep;
         }
 
         int ClaimUnkeptRegions(QixGrid grid)
@@ -177,7 +180,7 @@ namespace Qix
                 for (int y = 0; y < grid.Rows; y++)
                 {
                     int regionId = regionIds[x, y];
-                    if (regionId == NoRegion || regionsToKeep.Contains(regionId))
+                    if (regionId == NoRegion || regionId == keptRegion)
                     {
                         continue;
                     }
