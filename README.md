@@ -200,6 +200,7 @@ Assets/
 ### 사망과 타이머
 
 - 자기 교차 시 궤적 변을 `None`으로 되돌리고 궤적 시작점으로 복귀한다. 목숨이 0이 되면 실패 팝업.
+- 목숨 아이콘(`Icon - DeathCount`)은 `Canvas - Dynamic` 아래 `GO - DeathCount` 에 `deathCount` 개만큼 `Instantiate` 되는 **UI `Image`** 다. 예전에는 `SpriteRenderer` 를 캔버스 좌표로 월드에 떨어뜨리는 방식이었는데, 캔버스 좌표가 화면 픽셀을 따라가서 1080×1920 에서만 제자리에 나왔다. 웹 빌드(540×960)에서는 필드 안쪽으로 밀려 검은 칸에 가려졌다. 캔버스 아래에는 `SpriteRenderer` 를 두지 않는다.
 - 적 접촉은 두 가지다. 적이 궤적 변을 밟는 것(`MoveBy` 안에서 판정)과, **선을 그리는 중에** 적 본체가 플레이어와 `hitRadius`(프리팹) 안으로 겹치는 것(`QixScene.CheckEnemyContact`, 프레임마다 거리 비교). 테두리 위에 서 있을 때는 적이 스쳐도 안전하다. 어느 쪽이든 같은 처리 뒤 `invincibleDuration` 동안 무적이다(`Player.isInvincible`). 무적 중 적 접촉은 무시되지만 자기 교차·시간 초과는 그대로 죽는다. `hitRadius` 는 스프라이트보다 작게 둔다. 그림 크기대로 잡으면 칸(0.05)에 비해 너무 커서 억울한 죽음이 잦다.
 - 부활할 때 `Player.PlayerHitBlink(duration)` 로 피격 스프라이트를 깜빡인다. **깜빡임이 무적의 유일한 표시라 길이를 `HandlePlayerDeath` 가 정해 넘긴다** — 적 접촉이면 `invincibleDuration`, 무적이 없는 자기 교차면 짧은 `deathBlinkDuration`. Player 가 횟수를 직접 들고 있으면 무적 시간을 늘렸을 때 멀쩡히 보이면서 무적인 구간이 생긴다. 깜빡이는 도중에 그리기를 시작할 수 있으므로 끝나면 `baseSprite`(safe/draw 중 마지막 것)로 돌아간다. 깜빡이는 중에 또 죽으면 이전 코루틴을 끊고 새로 시작한다.
 - 타이머는 코루틴으로 1초마다 줄어들고 0이 되면 즉시 실패.

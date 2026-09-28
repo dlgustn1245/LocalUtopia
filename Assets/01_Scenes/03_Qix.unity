@@ -1866,15 +1866,15 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 932682775}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 90}
-  m_LocalScale: {x: 0.0052083335, y: 0.0052083335, z: 0.0052083335}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1944641050}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 0.5}
-  m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -1077.9949, y: -956.1094}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -155, y: -213}
   m_SizeDelta: {x: 300, y: 67}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &932682777
@@ -1891,11 +1891,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Padding:
     m_Left: 0
-    m_Right: 25
+    m_Right: 3
     m_Top: 25
     m_Bottom: 0
   m_ChildAlignment: 5
-  m_Spacing: 60
+  m_Spacing: 16
   m_ChildForceExpandWidth: 0
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 0
@@ -2496,15 +2496,6 @@ MonoBehaviour:
   m_Script: {fileID: 126115028}
   m_Name: 
   m_EditorClassIdentifier: Unity.AI.Assistant.RunCommand.Dynamic.1d228080985f4e1e90b5d1ff1d002d43::Unity.AI.Assistant.Agent.Dynamic.Extension.Editor.TestEnemy2
-  spriteRenderer: {fileID: 1842459277}
-  moveSpeed: 2
-  frameInterval: 0.25
-  hitRadius: 0.15
-  keepRegion: 1
-  cell: {x: 40, y: 70}
-  frames: []
-  frameTimer: 0
-  frameIndex: 0
 --- !u!212 &1842459277
 SpriteRenderer:
   serializedVersion: 3
@@ -2628,7 +2619,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 1080, y: 1920}
@@ -2648,15 +2639,15 @@ Canvas:
   m_GameObject: {fileID: 1944641046}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
-  m_Camera: {fileID: 0}
+  m_RenderMode: 1
+  m_Camera: {fileID: 300003}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
-  m_VertexColorAlwaysGammaSpace: 0
+  m_VertexColorAlwaysGammaSpace: 1
   m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
