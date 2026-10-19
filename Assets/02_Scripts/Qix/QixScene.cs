@@ -129,11 +129,6 @@ namespace Qix
         void SpawnEnemies()
         {
             var spawns = stage.enemies;
-            if (spawns == null)
-            {
-                return;
-            }
-
             for (int i = 0; i < spawns.Length; i++)
             {
                 var spawn = spawns[i];
@@ -223,11 +218,6 @@ namespace Qix
         // 확보된 칸 위의 거미줄을 지운다. 열거 중에 Remove 할 수 없어 키를 모아 두고 지운다.
         void RemoveClaimedTraps()
         {
-            if (traps.Count == 0)
-            {
-                return;
-            }
-
             trapRemoveBuffer.Clear();
             foreach (var pair in traps)
             {
@@ -247,12 +237,6 @@ namespace Qix
         // 변의 양옆 칸 중 하나를 덮고 있는 거미줄의 중심 칸을 돌려준다. 밟은 거미줄을 없애야 해서 참/거짓만으로는 부족하다.
         bool TryGetTrapCell(Vector2Int from, Vector2Int to, out Vector2Int trapCenter)
         {
-            if (traps.Count == 0)
-            {
-                trapCenter = default;
-                return false;
-            }
-
             if (from.y == to.y)
             {
                 int x = Mathf.Min(from.x, to.x);
@@ -497,15 +481,7 @@ namespace Qix
             int capturedCells = captureService.Capture(grid, enemyCells);
             RemoveCapturedEnemies();
             RemoveClaimedTraps();
-            RefreshRenderer();
-
-            // 적 영역을 남기는 모드에서는 궤적 양쪽이 모두 확보되어 현재 꼭짓점의 선이 전부 지워질 수 있다.
-            // 그대로 두면 어느 방향으로도 못 움직이므로 테두리로 되돌린다.
-            // ponytail: 가장 가까운 선 위 꼭짓점을 찾는 대신 시작 모서리로 보낸다. 적 구현 후 체감이 나쁘면 개선.
-            if (!grid.IsBoundaryVertex(currentVertex))
-            {
-                SetPlayerFirstVertex();
-            }
+            gridRenderer.Refresh();
 
             if (capturedCells > 0)
             {
@@ -515,7 +491,6 @@ namespace Qix
 
                 if (claimedRatio * 100f >= stage.clearRatio)
                 {
-                    print("Stage Clear");
                     canMove = false;
                     StageClear();
                 }
@@ -529,7 +504,7 @@ namespace Qix
             SetPlayerFirstVertex();
             grid.ClaimAllArea();
             RemoveClaimedTraps();
-            RefreshRenderer();
+            gridRenderer.Refresh();
             StopCoroutine(timerCoroutine);
             GameManager.Instance.StageClear();
             
@@ -550,9 +525,8 @@ namespace Qix
             }
         }
 
-        // 살아남아 부활했으면 true, 목숨을 다 써서 실패 팝업이 떴으면 false.
         // invincibleAfter 가 0보다 크면 그 시간 동안 무적이 되고 깜빡임도 같은 길이로 맞춘다.
-        bool HandlePlayerDeath(bool force = false, float invincibleAfter = 0f)
+        void HandlePlayerDeath(bool force = false, float invincibleAfter = 0f)
         {
             SetTrailEdges(EdgeState.None);
 
@@ -569,7 +543,14 @@ namespace Qix
             }
             player.speedMultiplier = 1f;
 
-            if (force || CheckPlayerDead())
+            // 시간 초과(force)는 목숨과 무관하게 실패라 아이콘을 지우지 않는다.
+            if (!force)
+            {
+                RemoveDeathCountIcon();
+                remainingLives--;
+            }
+
+            if (force || remainingLives <= 0)
             {
                 SoundManager.Instance.StopBGM();
                 SoundManager.Instance.PlaySFX(SoundManager.Instance.failSfx);
@@ -577,16 +558,16 @@ namespace Qix
                 canMove = false;
                 failPopup.gameObject.SetActive(true);
                 SetPlayerFirstVertex();
-                RefreshRenderer();
+                gridRenderer.Refresh();
                 foreach (var enemy in enemies)
                 {
                     enemy.enabled = false;
                 }
-                return false;
+                return;
             }
 
             MovePlayerToVertex(respawnVertex);
-            RefreshRenderer();
+            gridRenderer.Refresh();
 
             // 깜빡이는 도중에 또 죽으면 두 코루틴이 렌더러를 번갈아 끄고 켜서 엉킨다. 이전 것을 끊고 새로 시작한다.
             if (blinkCoroutine != null)
@@ -600,15 +581,6 @@ namespace Qix
             {
                 StartCoroutine(RunInvincible(invincibleAfter));
             }
-
-            return true;
-        }
-
-        bool CheckPlayerDead()
-        {
-            RemoveDeathCountIcon();
-
-            return --remainingLives <= 0;
         }
 
         void RemoveDeathCountIcon()
@@ -628,11 +600,6 @@ namespace Qix
             {
                 grid.SetEdge(points[i - 1], points[i], state);
             }
-        }
-
-        void RefreshRenderer()
-        {
-            gridRenderer.Refresh();
         }
     }
 }

@@ -73,7 +73,6 @@ public class GameSetting : MonoBehaviour
     
     void OnDisable()
     {
-        print("Setting Saved");
         PlayerPrefs.Save();
     }
 }

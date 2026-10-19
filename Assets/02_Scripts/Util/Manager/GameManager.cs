@@ -25,11 +25,6 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
-    public void InitStage()
-    {
-        currStage = -1;
-    }
-
     public void StageClear()
     {
         PlayerPrefs.SetInt($"Stage{currStage}", 1);
@@ -48,6 +43,5 @@ public class GameManager : Singleton<GameManager>
             PlayerPrefs.DeleteKey($"Stage{i}");
         }
         PlayerPrefs.Save();
-        print("Key Deleted");
     }
 }

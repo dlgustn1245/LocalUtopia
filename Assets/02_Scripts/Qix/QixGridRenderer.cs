@@ -66,10 +66,9 @@ namespace Qix
             ReleaseTexture();
         }
 
+        // QixScene.Start 에서 한 번만 부른다. dirty 표시는 그 뒤에만 켜지므로 Redraw 는 grid 가 있다고 가정한다.
         public void Bind(QixGrid targetGrid, QixTrail targetTrail)
         {
-            ReleaseTexture();
-
             grid = targetGrid;
             trail = targetTrail;
 
@@ -104,8 +103,6 @@ namespace Qix
                 backgroundRenderer.transform.position = grid.Origin + fieldWorldSize * 0.5f;
             }
 
-            isStructureDirty = false;
-            isTrailDirty = false;
             Redraw();
         }
 
@@ -123,11 +120,6 @@ namespace Qix
 
         void Redraw()
         {
-            if (grid == null)
-            {
-                return;
-            }
-
             FillCells();
             PaintBoundaryLines();
 
@@ -141,11 +133,6 @@ namespace Qix
         // 버퍼에는 직전 프레임의 칸·경계·궤적이 그대로 남아 있으므로 궤적 변만 덧칠하면 된다.
         void RedrawTrailOnly()
         {
-            if (grid == null)
-            {
-                return;
-            }
-
             PaintTrail();
             texture.SetPixels32(pixelBuffer);
             texture.Apply(false);
@@ -272,19 +259,12 @@ namespace Qix
             if (spriteRenderer != null && spriteRenderer.sprite != null)
             {
                 Destroy(spriteRenderer.sprite);
-                spriteRenderer.sprite = null;
             }
 
             if (texture != null)
             {
                 Destroy(texture);
-                texture = null;
             }
-
-            pixelBuffer = null;
-            trail = null;
-            isStructureDirty = false;
-            isTrailDirty = false;
         }
     }
 }

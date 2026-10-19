@@ -22,13 +22,9 @@ namespace Qix
             IsDrawing = true;
         }
 
+        // 그리는 중에, 직전 꼭짓점과 인접한 새 꼭짓점으로만 부른다.
         public bool TryAddPoint(Vector2Int vertex)
         {
-            if (!IsDrawing || vertex == points[^1])
-            {
-                return true;
-            }
-
             if (pointSet.Contains(vertex))
             {
                 return false;

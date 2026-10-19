@@ -18,8 +18,6 @@ public class TitleScene : MonoBehaviour
 
     void Start()
     {
-        GameManager.Instance.InitStage();
-
         BindButtonEvent();
         SetTitleVisible(true);
         SoundManager.Instance.PlayBGM(SoundManager.Instance.menuBgm);
@@ -31,7 +29,10 @@ public class TitleScene : MonoBehaviour
         if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
         {
             SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
-            OnClickTitle();
+            if (isTitleVisible)
+            {
+                SetTitleVisible(false);
+            }
         }
     }
 
@@ -77,16 +78,6 @@ public class TitleScene : MonoBehaviour
             SoundManager.Instance.PlaySFX(SoundManager.Instance.selectSfx);
             settingPopup.SetActive(true);
         });
-    }
-
-    void OnClickTitle()
-    {
-        if (!isTitleVisible)
-        {
-            return;
-        }
-
-        SetTitleVisible(false);
     }
 
     void SetTitleVisible(bool visible)

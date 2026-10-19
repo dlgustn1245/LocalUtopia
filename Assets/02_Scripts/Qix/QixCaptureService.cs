@@ -32,15 +32,10 @@ namespace Qix
         int keptRegion;
 
         // 새로 확보된 칸 수를 반환한다.
+        // 영역이 하나뿐이면(궤적이 영역을 가르지 못했으면) 그 영역이 남아 0을 돌려준다.
         public int Capture(QixGrid grid, IReadOnlyList<Vector2Int> enemyCells)
         {
-            int regionCount = AssignRegionIds(grid);
-            if (regionCount <= 1)
-            {
-                // 궤적이 영역을 둘로 가르지 못했다면(경계에 다시 닿기만 한 경우) 확보할 것이 없다.
-                return 0;
-            }
-
+            AssignRegionIds(grid);
             keptRegion = SelectRegionToKeep(grid, enemyCells);
             int claimedCount = ClaimUnkeptRegions(grid);
 
@@ -49,8 +44,8 @@ namespace Qix
             return claimedCount;
         }
 
-        // 미확보 칸마다 영역 번호를 매기고 영역 개수를 반환한다.
-        int AssignRegionIds(QixGrid grid)
+        // 미확보 칸마다 영역 번호를 매긴다. 영역 크기는 regionSizes 에 번호 순으로 쌓인다.
+        void AssignRegionIds(QixGrid grid)
         {
             PrepareBuffer(grid);
 
@@ -72,8 +67,6 @@ namespace Qix
                     regionSizes.Add(FloodFill(grid, cell, regionCount));
                 }
             }
-
-            return regionCount;
         }
 
         void PrepareBuffer(QixGrid grid)
@@ -115,7 +108,7 @@ namespace Qix
                     }
 
                     // 두 칸 사이에 선이 놓였으면 넘어갈 수 없다. 이 판정이 영역을 가른다.
-                    if (grid.IsBoundaryBetweenCells(current, next))
+                    if (grid.GetEdgeBetweenCells(current, next) == EdgeState.Boundary)
                     {
                         continue;
                     }

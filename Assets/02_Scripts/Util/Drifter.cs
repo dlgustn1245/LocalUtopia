@@ -36,7 +36,6 @@ public class Drifter : MonoBehaviour
     {
         var pos = rect.anchoredPosition;
         pos.x += velocity.x * Time.deltaTime;
-        baseY += velocity.y * Time.deltaTime;
 
         float halfParent = parentRect.rect.width * 0.5f;
         float halfSelf = rect.rect.width * 0.5f;
@@ -62,7 +61,7 @@ public class Drifter : MonoBehaviour
         }
 
         bobTime += Time.deltaTime;
-        pos.y = baseY + (bobAmplitude > 0f ? Mathf.Sin(bobTime * bobFrequency * Mathf.PI * 2f) * bobAmplitude : 0f);
+        pos.y = baseY + Mathf.Sin(bobTime * bobFrequency * Mathf.PI * 2f) * bobAmplitude;
         rect.anchoredPosition = pos;
 
         if (frames == null || frames.Length < 2)

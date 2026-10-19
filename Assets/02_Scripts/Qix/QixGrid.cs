@@ -222,12 +222,6 @@ namespace Qix
             return horizontalEdges[a.x, Mathf.Max(a.y, b.y)];
         }
 
-        // 인접한 두 칸 사이를 선이 막고 있는지. flood fill 의 벽 판정에 쓴다.
-        public bool IsBoundaryBetweenCells(Vector2Int a, Vector2Int b)
-        {
-            return GetEdgeBetweenCells(a, b) == EdgeState.Boundary;
-        }
-
         // 양옆 칸이 모두 확보된 변을 지운다. 두 미확보 영역을 갈랐던 옛 궤적이 양쪽 다 확보된 뒤에도 남아
         // 확보 영역 내부를 걸어 다닐 수 있게 되는 것을 막는다. 확보 영역은 둘레만 다닐 수 있어야 한다.
         // 바깥 테두리는 한쪽이 격자 밖이라 여기서 지워지지 않는다.
