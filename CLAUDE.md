@@ -17,7 +17,8 @@ LocalUtopia — Unity 게임 프로젝트. 현재 Qix(영역 확보) 게임을 �
 
 -   **필드 노출**: `[SerializeField] private` 대신 **`public` 필드**를 사용한다.
 -   **필드명**: 언더바(`_`) 접두사 사용 **금지**. `camelCase` 그대로 사용.
--   **네임스페이스**: `Qix` 폴더의 게임 로직만 `namespace Qix`. 씬 스크립트·유틸·플레이어는 전역 네임스페이스
+-   **네임스페이스**: `Content/Qix/02_Scripts` 바로 아래의 게임 로직만 `namespace Qix`. 그 아래 `Player/`·`Enemy/`와
+    다른 씬·`Common` 스크립트는 전역 네임스페이스
     (`Player` 폴더에 `namespace Player`를 두면 `Player.Player`가 되어 어색하다).
 -   **주석**: 한국어, WHY가 비자명할 때만 작성
 

@@ -11,22 +11,22 @@ Unity로 만든 세로형 모바일 게임. 선을 그려 영역을 확보하는
 ## 실행
 
 1. Unity Hub에서 6000.6.0f1로 프로젝트를 연다.
-2. `Assets/01_Scenes/01_Title.unity`를 열고 재생한다. GameManager 와 SoundManager 가 타이틀 씬에만 있으므로 다른 씬을 단독 재생하면 동작하지 않는다.
+2. `Assets/Content/Title/01_Scenes/Title.unity`를 열고 재생한다. GameManager 와 SoundManager 가 타이틀 씬에만 있으므로 다른 씬을 단독 재생하면 동작하지 않는다.
 
 ## 씬 흐름
 
 ```
-01_Title ─(스테이지 선택)─▶ 02_Loading ─(연출 후)─▶ 03_Qix ─┬─(클리어/실패)─▶ 01_Title
-                                                          └─(보너스 클리어)─▶ 04_Ending ─▶ 05_Credit ─▶ 01_Title
+Title ─(스테이지 선택)─▶ Loading ─(연출 후)─▶ Qix ─┬─(클리어/실패)─▶ Title
+                                                 └─(보너스 클리어)─▶ Ending ─▶ Credit ─▶ Title
 ```
 
 | 씬 | 스크립트 | 역할 |
 |---|---|---|
-| 01_Title | `TitleScene`, `GameSetting` | 타이틀 → 안내 팝업 → 스테이지 목록의 3단계 화면. 설정 팝업에서 음소거, BGM/SFX 볼륨, 데이터 초기화. GameManager, SoundManager 가 여기 있다. |
-| 02_Loading | `LoadingScene` | 선택한 스테이지의 적 애니메이션과 코멘트를 잠깐 보여준 뒤 게임 씬으로 넘어간다. 스테이지 BGM 이 여기서 시작된다. |
-| 03_Qix | `QixScene` | 게임 본편. 이동, 궤적, 영역 확보, 적 스폰·접촉·함정, 타이머, 목숨, 결과 팝업. |
-| 04_Ending | `EndingScene` | 버튼을 누를 때마다 다음 대사. 마지막 대사 뒤 크레딧으로. |
-| 05_Credit | `CreditScene` | 크레딧 텍스트가 위로 흐르고 끝나면 바닥에서 다시 올라온다. 버튼으로 타이틀 복귀. |
+| Title | `TitleScene`, `GameSetting` | 타이틀 → 안내 팝업 → 스테이지 목록의 3단계 화면. 설정 팝업에서 음소거, BGM/SFX 볼륨, 데이터 초기화. GameManager, SoundManager 가 여기 있다. |
+| Loading | `LoadingScene` | 선택한 스테이지의 적 애니메이션과 코멘트를 잠깐 보여준 뒤 게임 씬으로 넘어간다. 스테이지 BGM 이 여기서 시작된다. |
+| Qix | `QixScene` | 게임 본편. 이동, 궤적, 영역 확보, 적 스폰·접촉·함정, 타이머, 목숨, 결과 팝업. |
+| Ending | `EndingScene` | 버튼을 누를 때마다 다음 대사. 마지막 대사 뒤 크레딧으로. |
+| Credit | `CreditScene` | 크레딧 텍스트가 위로 흐르고 끝나면 바닥에서 다시 올라온다. 버튼으로 타이틀 복귀. |
 
 씬 이름은 `SceneNames` 상수로만 참조한다. 씬 전환은 `SceneLoader.Load`가 담당하며 로딩 중 중복 요청을 막는다. 각 씬은 진입 시 `SceneFader`가 검은 화면에서 페이드인하고, 페이드 초반에는 raycast 를 막아 클릭이 새지 않게 한다.
 
@@ -68,44 +68,67 @@ Unity로 만든 세로형 모바일 게임. 선을 그려 영역을 확보하는
 
 ## 폴더 구조
 
+씬마다 폴더 하나에 씬·스크립트·그림을 모은다. 한 씬에서만 쓰는 것은 그 씬 폴더에, **두 씬 이상에서 쓰게 되면 `Common` 으로 옮긴다.** 씬 폴더의 스크립트는 다른 씬 폴더를 참조하지 않는다. 그림은 런타임에 실제로 쓰는 씬 기준이다. 예를 들어 스테이지 BGM 은 로딩에서 틀어 Qix 까지 이어지므로 공용이다.
+
 ```
 Assets/
-├─ 01_Scenes/                  씬 5개
-├─ 02_Scripts/
-│  ├─ Player/
-│  │  ├─ Player.cs             입력 읽기와 좌표 이동만 담당. 어디로 갈 수 있는지는 판단하지 않는다. 피격 깜빡임, 무적 플래그, 감속 배율
-│  │  └─ TouchDirectionButton.cs  화면 방향 버튼 하나. 누르는 동안 Player에 방향을 넘긴다.
-│  ├─ Enemy/
-│  │  ├─ QixEnemy.cs           적 부모. 칸 위치, 벽·궤적 판정이 붙은 이동(MoveBy), 프레임 애니
-│  │  ├─ GlideEnemy.cs         랜덤 주기마다 빈 칸으로 직선 미끄러짐. 고양이·구름·발자국·경비
-│  │  ├─ FallingEnemy.cs       위에서 아래로 낙하, 사라졌다 재등장. 돈
-│  │  ├─ TrapperEnemy.cs       튕기며 직진, 주기마다 거미줄 요청. 거미
-│  │  └─ EnemyData.cs          스테이지가 적을 어떻게 스폰할지: prefab, count, frames
+├─ Content/
+│  ├─ Title/
+│  │  ├─ 01_Scenes/Title.unity
+│  │  ├─ 02_Scripts/           TitleScene(3단계 화면), GameSetting(설정 팝업 UI)
+│  │  └─ 03_Resources/         메뉴판, 스테이지 버튼(menu_*/pressed_*), 설정 팝업 판, 설정 버튼, 뒤로 버튼 눌림
+│  ├─ Loading/
+│  │  ├─ 01_Scenes/Loading.unity
+│  │  ├─ 02_Scripts/           LoadingScene
+│  │  └─ 03_Resources/         보너스 로딩용 경비 4인 시트
 │  ├─ Qix/
-│  │  ├─ CellState.cs          칸 상태: Empty / Claimed
-│  │  ├─ EdgeState.cs          변 상태: None / Boundary / Trail
-│  │  ├─ QixGrid.cs            게임판 데이터. 칸 배열 + 변 배열, 좌표 변환
-│  │  ├─ QixTrail.cs           그리는 중인 궤적의 꼭짓점 목록
-│  │  ├─ QixCaptureService.cs  flood fill로 영역을 나누고 확보 처리
-│  │  ├─ QixGridRenderer.cs    그리드를 Texture2D 한 장으로 그린다
-│  │  ├─ QixScene.cs           게임 씬 컨트롤러
-│  │  └─ StageData.cs          스테이지 설정 ScriptableObject
-│  └─ Util/
-│     ├─ Singleton.cs          MonoBehaviour 제네릭 싱글톤
-│     ├─ SceneLoader.cs        SceneNames 상수 + 씬 로더
-│     ├─ SceneFader.cs         씬 진입 페이드인
-│     ├─ Drifter.cs            장식 UI 이동. 가로 흐름/되돌아오기, 위아래 흔들림, 프레임 순환
-│     ├─ Manager/GameManager.cs   스테이지 목록, 현재 스테이지, 클리어 저장
-│     ├─ Manager/SoundManager.cs  BGM/SFX 채널 각 1개, 채널 볼륨·음소거 저장
-│     └─ SceneScripts/         Title / Loading / Ending / Credit 씬 스크립트, GameSetting(타이틀 설정 팝업 UI)
-└─ 03_Resources/
-   ├─ Font/                    NeoDunggeunmo, NotoSansKR SDF
-   ├─ Component/               UI 이미지. 번호 순으로 관리한다.
-   │  └─ Sound/                BGM(파일명에 BGM 포함), SFX
-   ├─ Prefab/                  목숨 아이콘 등 런타임에 Instantiate 하는 프리팹
-   │  └─ Enemy/                적 프리팹(그림별 1개) + SpiderWeb(거미줄)
-   └─ SO/                      StageData 에셋 (Stage_*.asset)
+│  │  ├─ 01_Scenes/Qix.unity
+│  │  ├─ 02_Scripts/           게임 로직(namespace Qix)
+│  │  │  ├─ QixScene.cs           게임 씬 컨트롤러
+│  │  │  ├─ QixGrid.cs            게임판 데이터. 칸 배열 + 변 배열, 좌표 변환
+│  │  │  ├─ QixTrail.cs           그리는 중인 궤적의 꼭짓점 목록
+│  │  │  ├─ QixCaptureService.cs  flood fill로 영역을 나누고 확보 처리
+│  │  │  ├─ QixGridRenderer.cs    그리드를 Texture2D 한 장으로 그린다
+│  │  │  ├─ CellState.cs          칸 상태: Empty / Claimed
+│  │  │  ├─ EdgeState.cs          변 상태: None / Boundary / Trail
+│  │  │  ├─ Player/
+│  │  │  │  ├─ Player.cs             입력 읽기와 좌표 이동만 담당. 어디로 갈 수 있는지는 판단하지 않는다. 피격 깜빡임, 무적 플래그, 감속 배율
+│  │  │  │  └─ TouchDirectionButton.cs  화면 방향 버튼 하나. 누르는 동안 Player에 방향을 넘긴다.
+│  │  │  └─ Enemy/
+│  │  │     ├─ QixEnemy.cs           적 부모. 칸 위치, 벽·궤적 판정이 붙은 이동(MoveBy), 프레임 애니
+│  │  │     ├─ GlideEnemy.cs         랜덤 주기마다 빈 칸으로 직선 미끄러짐. 고양이·구름·발자국·경비
+│  │  │     ├─ FallingEnemy.cs       위에서 아래로 낙하, 사라졌다 재등장. 돈
+│  │  │     └─ TrapperEnemy.cs       튕기며 직진, 주기마다 거미줄 요청. 거미
+│  │  ├─ 03_Resources/         숨은 그림(clear_*), 거미줄, 방향 버튼(위·아래·오른쪽), 플레이어 피격 그림, 막대(74.time_bar)
+│  │  └─ 04_Prefabs/           Icon - DeathCount(목숨 아이콘), SpiderWeb(거미줄)
+│  │     └─ Enemy/             적 프리팹(그림별 1개)
+│  ├─ Ending/
+│  │  ├─ 01_Scenes/Ending.unity
+│  │  └─ 02_Scripts/           EndingScene
+│  ├─ Credit/
+│  │  ├─ 01_Scenes/Credit.unity
+│  │  ├─ 02_Scripts/           CreditScene
+│  │  └─ 03_Resources/         러너(모서리용 그림)
+│  └─ Common/
+│     ├─ 02_Scripts/
+│     │  ├─ Manager/           GameManager(스테이지 목록, 현재 스테이지, 클리어 저장) · SoundManager(BGM/SFX 채널 각 1개, 채널 볼륨·음소거 저장). 둘 다 싱글톤
+│     │  ├─ Data/              StageData(스테이지 설정 ScriptableObject) · EnemyData(적 스폰 방법: prefab, count, frames)
+│     │  └─ Util/              Singleton · SceneLoader(SceneNames 상수 + 중복 로드 방지) · SceneFader(씬 진입 페이드인) · Drifter(장식 UI 이동)
+│     ├─ 03_Resources/
+│     │  ├─ Character/         적·캐릭터 그림(고양이, 발자국, 돈, 거미, 구름, 경비). 로딩·Qix·엔딩이 함께 쓴다
+│     │  ├─ Background/        배경(3.bg), 아파트(5.apart), 장식 구름
+│     │  ├─ UI/                로고, 시간·클리어·크레딧 보드, 팝업, 왼쪽 버튼(Qix 방향 버튼 겸 타이틀 뒤로가기), 플레이어 그림(타이틀 클리어 마크·슬라이더 손잡이와 겸용)
+│     │  ├─ Icon/              앱 아이콘(PlayerSettings)
+│     │  ├─ Font/              NeoDunggeunmo, NotoSansKR SDF
+│     │  └─ Sound/             BGM(파일명에 BGM 포함), SFX
+│     └─ 03_Data/              StageData 에셋 (Stage_*.asset)
+├─ Settings/                   URP · Input System (Unity 생성)
+└─ TextMesh Pro/               TMP 기본 리소스 (Unity 생성)
 ```
+
+그림은 번호가 붙은 원본 이름을 그대로 쓴다. 씬 폴더에는 실제로 필요한 하위 폴더만 둔다(엔딩은 그림이 모두 공용이라 `03_Resources` 가 없다).
+
+예외가 하나 있다. `EnemyData.prefab` 이 `QixEnemy` 타입이라 `Common/Data` 가 `Qix/02_Scripts/Enemy` 를 참조한다. 인스펙터가 적 스크립트 없는 프리팹을 받지 않게 하려는 의도라 남겨 두었다. 에셋도 같은 방향으로 걸린다. `Stage_*.asset` 이 Qix 의 숨은 그림과 적 프리팹을 가리킨다.
 
 ## 핵심 로직 (Qix)
 
@@ -185,7 +208,7 @@ Assets/
 
 **낙하형의 두 단계**: 확보된 칸에 있는 동안은 아직 "들어오는 중" 이라 `Descend` 가 변을 보지 않고 좌표만 내리며 칸을 직접 갱신한다. 미확보 칸에 닿으면 그때부터 `MoveBy` 로 넘어가 벽에 막히고 궤적도 밟는다. 이 단계가 필요한 이유는 둘이다. 확보·미확보 경계가 `Boundary` 라 보통 이동으로는 통과할 수 없고, 확보된 칸에서 바로 사라지게 하면 위쪽을 덮은 뒤로 등장 자체가 막힌다. 등장 위치를 "남은 영역의 천장" 으로 낮추는 방법도 있지만, 그러면 확보 모양에 따라 화면 한가운데서 튀어나와 떨어지는 것처럼 보이지 않는다.
 
-**스폰**: `QixScene.SpawnEnemies` 가 `StageData.enemies`(`EnemyData[]`) 의 `prefab` 을 `count` 만큼 `Instantiate` 하고 (`EnemyData.prefab` 은 `GameObject` 가 아니라 `QixEnemy` 타입이다. 인스펙터가 적 스크립트 없는 프리팹을 아예 받지 않아 스폰 도중 터지는 대신 꽂는 자리에서 막힌다) `Init(grid, frames, 콜백)` → `Place(빈 칸)` 한다. 프리팹은 그림별로 하나씩(`Prefab/Enemy/`)이고 행동 수치(속도·주기)는 프리팹, 마릿수와 프레임은 `EnemyData` 에 둔다. 보너스처럼 인스턴스마다 그림이 다르면 `EnemyData` 를 여러 줄 쓴다. `Init` 은 생성자 대신이다. `Instantiate` 바로 다음 줄에서 부르면 `Awake` 는 이미 끝났고 첫 `Update` 는 아직이라 순서가 보장된다. 그래서 자식의 `Awake` 는 `grid` 를 쓰지 않는다.
+**스폰**: `QixScene.SpawnEnemies` 가 `StageData.enemies`(`EnemyData[]`) 의 `prefab` 을 `count` 만큼 `Instantiate` 하고 (`EnemyData.prefab` 은 `GameObject` 가 아니라 `QixEnemy` 타입이다. 인스펙터가 적 스크립트 없는 프리팹을 아예 받지 않아 스폰 도중 터지는 대신 꽂는 자리에서 막힌다) `Init(grid, frames, 콜백)` → `Place(빈 칸)` 한다. 프리팹은 그림별로 하나씩(`Qix/04_Prefabs/Enemy/`)이고 행동 수치(속도·주기)는 프리팹, 마릿수와 프레임은 `EnemyData` 에 둔다. 보너스처럼 인스턴스마다 그림이 다르면 `EnemyData` 를 여러 줄 쓴다. `Init` 은 생성자 대신이다. `Instantiate` 바로 다음 줄에서 부르면 `Awake` 는 이미 끝났고 첫 `Update` 는 아직이라 순서가 보장된다. 그래서 자식의 `Awake` 는 `grid` 를 쓰지 않는다.
 
 **함정(거미줄)**: 거미는 "언제·어디" 만 알리고 생성·감속·제거는 `QixScene` 이 한 곳에서 한다(거미가 둘 이상이어도 사전이 하나). `traps` 사전의 키는 거미줄 스프라이트가 놓인 **중심 칸**이고, 감속 범위는 거기서 `trapCellRadius` 칸이다. 거미줄 그림은 0.27 유닛으로 칸(0.05)보다 다섯 배쯤 커서, 중심 칸만 느리게 하면 눈에 보이는 거미줄 대부분이 아무 효과가 없다. **거미줄 그림 크기나 `cellWorldSize` 를 바꾸면 `trapCellRadius` 도 같이 맞춘다.**
 
@@ -282,7 +305,7 @@ SFX:
 |---|---|
 | `hiddenImage` | 확보 영역 아래 드러나는 그림 |
 | `enemyAnims` | 로딩 씬에서 돌리는 애니메이션 프레임(Texture). 인게임 적 그림과 별개다. 보너스 로딩은 경비 4인 시트 한 장이지만 인게임은 개별 경비다 |
-| `enemies` | `EnemyData[]`. 줄마다 `prefab`(Prefab/Enemy/), `count`, `frames`(인게임 애니 Sprite 배열, `frameInterval` 마다 순환). 보너스는 경비별로 세 줄 |
+| `enemies` | `EnemyData[]`. 줄마다 `prefab`(`Qix/04_Prefabs/Enemy/`), `count`, `frames`(인게임 애니 Sprite 배열, `frameInterval` 마다 순환). 보너스는 경비별로 세 줄 |
 | `comment` | 로딩 씬 코멘트 |
 | `timer` | 제한 시간(초) |
 | `clearRatio` | 클리어에 필요한 확보 비율(%) |
@@ -310,4 +333,4 @@ PlayerPrefs 를 쓴다.
 
 ## 코드 규칙
 
-`CLAUDE.md`를 따른다. 요약: `public` 필드 사용, 필드명에 언더바 접두사 금지, 네임스페이스는 폴더 미러링, 주석은 한국어로 WHY만. 런타임 생성 `UnityEngine.Object`는 `OnDestroy`에서 `Destroy`한다.
+`CLAUDE.md`를 따른다. 요약: `public` 필드 사용, 필드명에 언더바 접두사 금지, 네임스페이스는 Qix 게임 로직만 `Qix`, 주석은 한국어로 WHY만. 런타임 생성 `UnityEngine.Object`는 `OnDestroy`에서 `Destroy`한다.
